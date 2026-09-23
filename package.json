@@ -1,0 +1,22 @@
+{
+  "name": "anz-parabank-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cucumber and Playwright automation for ParaBank",
+  "scripts": {
+    "test": "cucumber-js",
+    "test:headed": "cross-env HEADLESS=false cucumber-js",
+    "test:smoke": "cucumber-js --tags @smoke",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.3.0",
+    "@cucumber/cucumber": "^12.2.0",
+    "@types/node": "^22.10.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.49.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

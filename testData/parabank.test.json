@@ -1,0 +1,152 @@
+{
+  "login": {
+    "username": "john",
+    "password": "demo"
+  },
+  "registrations": [
+    {
+      "firstName": "Myrtle",
+      "lastName": "Douglas",
+      "address": "94173 Sporer Villages",
+      "city": "Lake Margarett",
+      "state": "TX",
+      "zipCode": "80832",
+      "phoneNumber": "1280385966",
+      "ssn": "585357811",
+      "username": "9292611",
+      "password": "09557106"
+    },
+    {
+      "firstName": "Raphael",
+      "lastName": "Wiegand",
+      "address": "62649 Holden Spring",
+      "city": "East Bernhard",
+      "state": "WY",
+      "zipCode": "78269",
+      "phoneNumber": "2673791945",
+      "ssn": "095657720",
+      "username": "9568400",
+      "password": "55153075"
+    },
+    {
+      "firstName": "Linnea",
+      "lastName": "Schamberger",
+      "address": "4074 Rutherford Viaduct",
+      "city": "Lake Anahifort",
+      "state": "AK",
+      "zipCode": "99196",
+      "phoneNumber": "4803188847",
+      "ssn": "023189626",
+      "username": "3234510",
+      "password": "10339431"
+    },
+    {
+      "firstName": "Claudia",
+      "lastName": "Willms",
+      "address": "7953 Daren Grove",
+      "city": "Lake Jimmyfurt",
+      "state": "OK",
+      "zipCode": "67449",
+      "phoneNumber": "1779860410",
+      "ssn": "394755057",
+      "username": "7481756",
+      "password": "84943830"
+    },
+    {
+      "firstName": "Gabe",
+      "lastName": "Bailey",
+      "address": "18174 Cruickshank Parks",
+      "city": "Mayertport",
+      "state": "HI",
+      "zipCode": "82228",
+      "phoneNumber": "5818988723",
+      "ssn": "978904501",
+      "username": "8094974",
+      "password": "59290382"
+    },
+    {
+      "firstName": "Thomas",
+      "lastName": "Kris",
+      "address": "47545 Ruecker Lights",
+      "city": "North Maya",
+      "state": "LA",
+      "zipCode": "34737",
+      "phoneNumber": "8900444752",
+      "ssn": "000914198",
+      "username": "5007917",
+      "password": "82695420"
+    },
+    {
+      "firstName": "Prudence",
+      "lastName": "Tromp",
+      "address": "416 Lancaster Road",
+      "city": "San Bernardino",
+      "state": "NM",
+      "zipCode": "30039",
+      "phoneNumber": "8620814683",
+      "ssn": "518509240",
+      "username": "1200785",
+      "password": "10922572"
+    },
+    {
+      "firstName": "Juliana",
+      "lastName": "Conroy",
+      "address": "306 Renner Wall",
+      "city": "Lehigh Acres",
+      "state": "PA",
+      "zipCode": "13819",
+      "phoneNumber": "8982902633",
+      "ssn": "799071930",
+      "username": "5538559",
+      "password": "39332426"
+    },
+    {
+      "firstName": "Ashlynn",
+      "lastName": "VonRueden",
+      "address": "921 Dare Island",
+      "city": "Overland Park",
+      "state": "MT",
+      "zipCode": "81271",
+      "phoneNumber": "4271065202",
+      "ssn": "359483625",
+      "username": "ashlynn755",
+      "password": "71002343"
+    },
+    {
+      "firstName": "Ressie",
+      "lastName": "Bayer",
+      "address": "3986 Melyssa Meadow",
+      "city": "Skokie",
+      "state": "KS",
+      "zipCode": "71948",
+      "phoneNumber": "4776807100",
+      "ssn": "696324415",
+      "username": "ressie475",
+      "password": "40548416"
+    },
+    {
+      "firstName": "Annabelle",
+      "lastName": "Koch",
+      "address": "93945 W Grand Avenue",
+      "city": "Wesley Chapel",
+      "state": "MN",
+      "zipCode": "57579",
+      "phoneNumber": "8368605676",
+      "ssn": "671297109",
+      "username": "annabelle940",
+      "password": "80348495"
+    },
+    {
+      "firstName": "Roger",
+      "lastName": "Conn",
+      "address": "30920 W Main",
+      "city": "Abigailview",
+      "state": "WI",
+      "zipCode": "17163",
+      "phoneNumber": "0716692781",
+      "ssn": "729150827",
+      "username": "roger560",
+      "password": "57979971"
+    }
+  ]
+}
