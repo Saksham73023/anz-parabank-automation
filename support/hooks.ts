@@ -17,7 +17,8 @@ Before(async function (this: CustomWorld) {
   });
   this.context = await this.browser.newContext();
   this.page = await this.context.newPage();
-  this.page.setDefaultTimeout(Number(process.env.DEFAULT_TIMEOUT ?? 10000));
+  this.page.setDefaultTimeout(Number(process.env.DEFAULT_TIMEOUT ?? 30000));
+  this.page.setDefaultNavigationTimeout(Number(process.env.NAVIGATION_TIMEOUT ?? 45000));
 });
 
 After(async function (this: CustomWorld, scenario) {

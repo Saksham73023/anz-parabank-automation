@@ -32,3 +32,27 @@ Feature: ParaBank customer registration
   And At least one account should exist
   And Account number should be visible
   And Account balance should not be empty
+
+  Scenario: Verify registration with maximum username length
+    When User enters username with more than allowed characters
+    And User submits registration form
+    Then Registration should not be successful
+    And Appropriate validation message should be displayed
+
+  Scenario: Verify registration with special characters in username
+    When User enters special characters in username field
+    And User submits registration form
+    Then Registration should not be successful
+
+
+  Scenario: Verify registration with SQL Injection payload
+    When User enters SQL Injection payload in username field
+    And User submits registration form
+    Then Registration should not be successful
+    And Application should handle the request securely
+
+  Scenario: Verify registration with XSS payload
+    When User enters XSS payload in registration fields
+    And User submits registration form
+    Then Script should not execute
+    And Registration should not be successful

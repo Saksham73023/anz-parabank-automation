@@ -16,7 +16,10 @@ export class LoginPage {
   }
 
   async open(): Promise<void> {
-    await this.page.goto(process.env.BASE_URL ?? 'https://parabank.parasoft.com/parabank/index.htm');
+    await this.page.goto(
+      process.env.BASE_URL ?? 'https://parabank.parasoft.com/parabank/index.htm',
+      { waitUntil: 'domcontentloaded' }
+    );
     await this.usernameInput.waitFor({ state: 'visible' });
   }
 

@@ -41,6 +41,7 @@ export class RegistrationPage extends BasePage {
 		if (await logoutLink.isVisible()) {
 			await logoutLink.click();
 		}
+		await this.registerLink.waitFor({ state: 'visible' });
 		await this.click(this.registerLink);
 		await this.waitForElement(this.usernameInput);
 	}

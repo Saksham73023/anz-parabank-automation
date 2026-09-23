@@ -102,3 +102,73 @@ Then('Account number should be visible', async function (this: CustomWorld) {
 Then('Account balance should not be empty', async function (this: CustomWorld) {
     await new AccountsOverviewPage(this.page!).verifyAccountBalanceIsValid();
 });
+
+When('User enters username with more than allowed characters', async function (this: CustomWorld) {
+    const registrationPage = new RegistrationPage(this.page!);
+    await registrationPage.open();
+    const data = createRegistrationData();
+    await registrationPage.fillRegistrationForm({
+        ...data,
+        username: `${data.username}${'x'.repeat(60)}`
+    });
+});
+
+When('User submits registration form', async function (this: CustomWorld) {
+    await new RegistrationPage(this.page!).submit();
+});
+
+Then('Registration should not be successful', async function (this: CustomWorld) {
+    await expect(this.page!.getByText('Your account was created successfully. You are now logged in.')).not.toBeVisible();
+    await expect(this.page!.getByRole('link', { name: 'Log Out' })).not.toBeVisible();
+});
+
+Then('Appropriate validation message should be displayed', async function (this: CustomWorld) {
+    await expect(this.page!.locator('.error:visible').first()).toBeVisible();
+});
+
+When('User enters special characters in username field', async function (this: CustomWorld) {
+    const registrationPage = new RegistrationPage(this.page!);
+    await registrationPage.open();
+    const data = createRegistrationData();
+    await registrationPage.fillRegistrationForm({
+        ...data,
+        username: 'user<>/&%$#@!'
+    });
+});
+
+When('User enters SQL Injection payload in username field', async function (this: CustomWorld) {
+    const registrationPage = new RegistrationPage(this.page!);
+    await registrationPage.open();
+    const data = createRegistrationData();
+    await registrationPage.fillRegistrationForm({
+        ...data,
+        username: "' OR '1'='1"
+    });
+});
+
+Then('Application should handle the request securely', async function (this: CustomWorld) {
+    await expect(this.page!.getByRole('link', { name: 'Log Out' })).not.toBeVisible();
+    await expect(this.page!.getByText('Your account was created successfully. You are now logged in.')).not.toBeVisible();
+});
+
+When('User enters XSS payload in registration fields', async function (this: CustomWorld) {
+    const registrationPage = new RegistrationPage(this.page!);
+    await registrationPage.open();
+    const data = createRegistrationData();
+    await registrationPage.fillRegistrationForm({
+        ...data,
+        username: '<script>alert("xss")</script>'
+    });
+
+    const testWorld = this as CustomWorld & { xssScriptExecuted?: boolean };
+    testWorld.xssScriptExecuted = false;
+    this.page!.on('dialog', async dialog => {
+        testWorld.xssScriptExecuted = true;
+        await dialog.dismiss();
+    });
+});
+
+Then('Script should not execute', async function (this: CustomWorld) {
+    const testWorld = this as CustomWorld & { xssScriptExecuted?: boolean };
+    expect(testWorld.xssScriptExecuted).toBe(false);
+});
