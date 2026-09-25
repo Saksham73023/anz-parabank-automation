@@ -7,6 +7,16 @@ export class CustomWorld extends World {
   context?: BrowserContext;
   page?: Page;
   registrationData?: RegistrationData;
+  transferSourceAccountId?: string;
+  transferDestinationAccountId?: string;
+  transferOpeningBalance?: number;
+  transferSourceBalanceBefore?: number;
+  transferDestinationBalanceBefore?: number;
+  transferAmount?: number;
+  transferTransactionId?: string;
+  transferSuccessful?: boolean;
+  transferExpectedBalance?: number;
+  transferLedgerEntries?: number;
 
   constructor(options: IWorldOptions) {
     super(options);
