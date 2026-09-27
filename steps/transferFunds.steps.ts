@@ -4,7 +4,8 @@ import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
 import { OpenAccountPage } from '../pages/openAccount.page';
 import { RegistrationData, RegistrationPage } from '../pages/registration.page';
-import { dailyTransferAmounts, transferAmounts } from '../testData/transferData';
+import { dailyTransferAmounts, transferAmounts } from '../support/testDataHelper';
+import { createRegistrationData } from '../testData/dynamicData';
 import { CustomWorld } from '../support/world';
 
 function transferPage(world: CustomWorld): TransferFundsPage {
@@ -12,19 +13,7 @@ function transferPage(world: CustomWorld): TransferFundsPage {
 }
 
 function freshTransferUser(): RegistrationData {
-  const uniqueSuffix = `${Date.now().toString(36).slice(-5)}${Math.random().toString(36).slice(2, 9)}`;
-  return {
-    firstName: 'Transfer',
-    lastName: 'Customer',
-    address: '1 Main Street',
-    city: 'Austin',
-    state: 'TX',
-    zipCode: '78701',
-    phoneNumber: '5125550100',
-    ssn: '123456789',
-    username: `tr${uniqueSuffix}`,
-    password: 'Transfer12345'
-  };
+  return createRegistrationData({ firstName: 'Transfer', lastName: 'Customer', password: 'Transfer12345' });
 }
 
 async function registerFreshTransferUser(world: CustomWorld): Promise<void> {
@@ -50,7 +39,7 @@ Given('user is logged into ParaBank', async function (this: CustomWorld) {
   const transferPage = new TransferFundsPage(this.page!);
   const accountIds = await transferPage.getAccountIds();
   if (accountIds.length < 2) {
-    await new OpenAccountPage(this.page!).createAccount('CHECKING');
+    await new OpenAccountPage(this.page!).createAccount();
     await new AccountsOverviewPage(this.page!).verifyPageDisplayed();
   }
 });
@@ -269,3 +258,4 @@ Then('total ledger entries should be {int}', async function (this: CustomWorld, 
 });
 
 void transferAmounts;
+

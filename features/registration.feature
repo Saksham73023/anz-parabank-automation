@@ -1,7 +1,7 @@
-@registration
+ @registration @regression 
 Feature: ParaBank customer registration
 
-  @smoke
+  @smoke @positive
   Scenario: Register a new customer with a default account
    Given I am on the ParaBank registration page
    When I register a new ParaBank customer with Faker data
@@ -11,21 +11,25 @@ Feature: ParaBank customer registration
    And the account number should be visible
    And the account balance should not be empty or zero
 
+  @negative @duplicateuser
  Scenario: Verify registration with existing username
    Given Existing user already exists
    When User registers with same username
    Then Username already exists error should be displayed
 
+ @negative @datadriven @mandatoryfields
   Scenario: Verify mandatory fields validation
    Given User is on Registration page
    When User submits registration form without entering mandatory data
    Then Required field validation messages should be displayed
 
+  @negative @passwordvalidation
   Scenario: Verify password confirmation mismatch
    Given User is on Registration page
    When User enters different password and confirm password
    Then Password mismatch error should be displayed
 
+ @positive @accountcreation
   Scenario: Verify default account is created after registration
    Given User has registered successfully
    Then Accounts Overview page should display
@@ -33,24 +37,27 @@ Feature: ParaBank customer registration
    And Account number should be visible
    And Account balance should not be empty
 
+ @boundary @security @maxlength
   Scenario: Verify registration with maximum username length
     When User enters username with more than allowed characters
     And User submits registration form
     Then Registration should not be successful
     And Appropriate validation message should be displayed
 
+ @boundary @security @specialchars
   Scenario: Verify registration with special characters in username
     When User enters special characters in username field
     And User submits registration form
     Then Registration should not be successful
 
-
+ @security @sqli
   Scenario: Verify registration with SQL Injection payload
     When User enters SQL Injection payload in username field
     And User submits registration form
     Then Registration should not be successful
     And Application should handle the request securely
 
+@security @xss
   Scenario: Verify registration with XSS payload
     When User enters XSS payload in registration fields
     And User submits registration form

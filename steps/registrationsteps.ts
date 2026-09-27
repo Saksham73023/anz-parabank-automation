@@ -2,7 +2,8 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { RegistrationPage } from '../pages/registration.page';
-import { createRegistrationData } from '../utils/faker.util';
+import { createRegistrationData } from '../testData/dynamicData';
+import { getCommonMessages, getLoginCredentials, getRegistrationData, getValidationMessages } from '../support/testDataHelper';
 import { CustomWorld } from '../support/world';
 
 Given('I am on the ParaBank registration page', async function (this: CustomWorld) {
@@ -16,7 +17,7 @@ When('I register a new ParaBank customer with Faker data', async function (this:
 
 Then('the new customer should be automatically logged in', async function (this: CustomWorld) {
     await expect(this.page!.getByRole('link', { name: 'Log Out' })).toBeVisible();
-    await expect(this.page!.getByText('Your account was created successfully. You are now logged in.')).toBeVisible();
+    await expect(this.page!.getByText(getCommonMessages().registrationSuccess)).toBeVisible();
 });
 
 Then('the Accounts Overview page should be displayed', async function (this: CustomWorld) {
@@ -38,22 +39,17 @@ Then('the account balance should not be empty or zero', async function (this: Cu
 Given('Existing user already exists', async function (this: CustomWorld) {
     const registrationPage = new RegistrationPage(this.page!);
     await registrationPage.open();
-    this.registrationData = createRegistrationData();
-    await registrationPage.register(this.registrationData);
-    await registrationPage.open();
+    this.registrationData = createRegistrationData({ username: getLoginCredentials().username });
 });
 
 When('User registers with same username', async function (this: CustomWorld) {
     const registrationPage = new RegistrationPage(this.page!);
     await registrationPage.fillRegistrationForm(this.registrationData!);
     await registrationPage.submit();
-    await registrationPage.open();
-    await registrationPage.fillRegistrationForm(this.registrationData!);
-    await registrationPage.submit();
 });
 
 Then('Username already exists error should be displayed', async function (this: CustomWorld) {
-    await expect(this.page!.locator('.error:visible')).toContainText('already exists');
+    await expect(this.page!.locator('.error:visible')).toContainText(getValidationMessages().usernameAlreadyExists);
 });
 
 Given('User is on Registration page', async function (this: CustomWorld) {
@@ -118,7 +114,7 @@ When('User submits registration form', async function (this: CustomWorld) {
 });
 
 Then('Registration should not be successful', async function (this: CustomWorld) {
-    await expect(this.page!.getByText('Your account was created successfully. You are now logged in.')).not.toBeVisible();
+    await expect(this.page!.getByText(getCommonMessages().registrationSuccess)).not.toBeVisible();
     await expect(this.page!.getByRole('link', { name: 'Log Out' })).not.toBeVisible();
 });
 
@@ -132,7 +128,7 @@ When('User enters special characters in username field', async function (this: C
     const data = createRegistrationData();
     await registrationPage.fillRegistrationForm({
         ...data,
-        username: 'user<>/&%$#@!'
+        username: getRegistrationData().invalid.specialCharactersUsername
     });
 });
 
@@ -142,13 +138,13 @@ When('User enters SQL Injection payload in username field', async function (this
     const data = createRegistrationData();
     await registrationPage.fillRegistrationForm({
         ...data,
-        username: "' OR '1'='1"
+        username: getRegistrationData().invalid.sqlInjectionUsername
     });
 });
 
 Then('Application should handle the request securely', async function (this: CustomWorld) {
     await expect(this.page!.getByRole('link', { name: 'Log Out' })).not.toBeVisible();
-    await expect(this.page!.getByText('Your account was created successfully. You are now logged in.')).not.toBeVisible();
+    await expect(this.page!.getByText(getCommonMessages().registrationSuccess)).not.toBeVisible();
 });
 
 When('User enters XSS payload in registration fields', async function (this: CustomWorld) {
@@ -157,7 +153,7 @@ When('User enters XSS payload in registration fields', async function (this: Cus
     const data = createRegistrationData();
     await registrationPage.fillRegistrationForm({
         ...data,
-        username: '<script>alert("xss")</script>'
+        username: getRegistrationData().invalid.xssUsername
     });
 
     const testWorld = this as CustomWorld & { xssScriptExecuted?: boolean };

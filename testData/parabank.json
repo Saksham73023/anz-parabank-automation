@@ -1,0 +1,152 @@
+{
+  "loginData": {
+    "validUser": {
+      "username": "john",
+      "password": "demo"
+    }
+  },
+  "registrationData": {
+    "valid": {
+      "firstName": "Test",
+      "lastName": "Customer",
+      "address": "1 Main Street",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78701",
+      "phoneNumber": "5125550100",
+      "ssn": "123456789",
+      "username": "parabank-test-user",
+      "password": "Test12345"
+    },
+    "invalid": {
+      "specialCharactersUsername": "test!@#$%",
+      "sqlInjectionUsername": "' OR '1'='1",
+      "xssUsername": "<script>alert(\"xss\")</script>"
+    }
+  },
+  "accountData": {
+    "defaultType": "CHECKING",
+    "supportedTypes": ["CHECKING", "SAVINGS"]
+  },
+  "transferFundsData": {
+    "dailyAmounts": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  },
+  "billPaymentData": {
+    "valid": {
+      "payeeName": "Northwind Utilities",
+      "address": "100 Main Street",
+      "city": "Austin",
+      "state": "TX",
+      "zipCode": "78701",
+      "phoneNumber": "5125550100",
+      "accountNumber": "123456789",
+      "verifyAccount": "123456789",
+      "amount": "1.00"
+    },
+    "invalid": {
+      "mismatchedAccount": {
+        "payeeName": "Northwind Utilities",
+        "address": "100 Main Street",
+        "city": "Austin",
+        "state": "TX",
+        "zipCode": "78701",
+        "phoneNumber": "5125550100",
+        "accountNumber": "123456789",
+        "verifyAccount": "987654321",
+        "amount": "1.00"
+      },
+      "zeroAmount": {
+        "payeeName": "Northwind Utilities",
+        "address": "100 Main Street",
+        "city": "Austin",
+        "state": "TX",
+        "zipCode": "78701",
+        "phoneNumber": "5125550100",
+        "accountNumber": "123456789",
+        "verifyAccount": "123456789",
+        "amount": "0"
+      },
+      "blankAmount": {
+        "payeeName": "Northwind Utilities",
+        "address": "100 Main Street",
+        "city": "Austin",
+        "state": "TX",
+        "zipCode": "78701",
+        "phoneNumber": "5125550100",
+        "accountNumber": "123456789",
+        "verifyAccount": "123456789",
+        "amount": ""
+      },
+      "negativeAmount": {
+        "payeeName": "Northwind Utilities",
+        "address": "100 Main Street",
+        "city": "Austin",
+        "state": "TX",
+        "zipCode": "78701",
+        "phoneNumber": "5125550100",
+        "accountNumber": "123456789",
+        "verifyAccount": "123456789",
+        "amount": "-100"
+      }
+    },
+    "batch": [
+      { "payeeName": "Northwind Utilities", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "123456789", "verifyAccount": "123456789", "amount": "1.00" },
+      { "payeeName": "Metro Water", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "987654321", "verifyAccount": "987654321", "amount": "2.00" },
+      { "payeeName": "Summit Internet", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "234567891", "verifyAccount": "234567891", "amount": "3.00" },
+      { "payeeName": "Bright Gas", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "345678912", "verifyAccount": "345678912", "amount": "4.00" },
+      { "payeeName": "Evergreen Insurance", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "456789123", "verifyAccount": "456789123", "amount": "5.00" },
+      { "payeeName": "City Telephone", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "567891234", "verifyAccount": "567891234", "amount": "6.00" },
+      { "payeeName": "Pioneer Electric", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "678912345", "verifyAccount": "678912345", "amount": "7.00" },
+      { "payeeName": "Lakeside Cable", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "789123456", "verifyAccount": "789123456", "amount": "8.00" },
+      { "payeeName": "Oak Valley Health", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "5125550100", "accountNumber": "891234567", "verifyAccount": "891234567", "amount": "9.00" },
+      { "payeeName": "Cedar Waste Services", "address": "100 Main Street", "city": "Austin", "state": "TX", "zipCode": "78701", "phoneNumber": "912345678", "accountNumber": "912345678", "verifyAccount": "912345678", "amount": "10.00" }
+    ]
+  },
+  "commonMessages": {
+    "registrationSuccess": "Your account was created successfully. You are now logged in.",
+    "accountOpenedSuccess": "Congratulations, your account is now open.",
+    "transferCompleteHeading": "Transfer Complete!",
+    "billPaymentComplete": "Bill Payment Complete"
+  },
+  "validationMessages": {
+    "usernameAlreadyExists": "already exists",
+    "billPayment": {
+      "accountMismatch": "account numbers? do not match|accounts do not match",
+      "amount": "amount.*(required|greater|positive|valid|zero)|required.*amount",
+      "invalidAmount": "invalid amount|amount.*(greater than zero|positive|valid)",
+      "insufficientFunds": "insufficient funds|sufficient funds|not enough funds"
+    }
+  },
+  "testAmounts": {
+    "billPayment": {
+      "valid": "1.00",
+      "zero": "0",
+      "negative": "-100",
+      "blank": ""
+    },
+    "transfer": {
+      "minimum": 1,
+      "twoDecimalPlaces": 100.5,
+      "large": 500,
+      "valid": 1,
+      "zero": "0",
+      "negative": "-100",
+      "nonNumeric": "abc",
+      "specialCharacters": "@@@",
+      "moreThanTwoDecimalPlaces": "100.999"
+    }
+  },
+  "reusableApplicationData": {
+    "billPaymentFieldLabels": {
+      "Payee Name": "payeeName",
+      "Address": "address",
+      "City": "city",
+      "State": "state",
+      "Zip Code": "zipCode",
+      "Phone Number": "phoneNumber",
+      "Account Number": "accountNumber",
+      "Verify Account": "verifyAccount",
+      "Amount": "amount"
+    }
+  }
+}

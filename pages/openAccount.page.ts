@@ -1,4 +1,5 @@
 import { expect, Locator, Page } from 'playwright/test';
+import { getAccountData, getCommonMessages, type AccountType } from '../support/testDataHelper';
 import { BasePage } from './basepage';
 
 export class OpenAccountPage extends BasePage {
@@ -27,7 +28,7 @@ export class OpenAccountPage extends BasePage {
   }
 
   async selectCheckingAccount(): Promise<void> {
-    await this.selectAccountType('CHECKING');
+    await this.selectAccountType(getAccountData().defaultType);
   }
 
   async selectAccountType(accountType: string): Promise<void> {
@@ -58,7 +59,7 @@ export class OpenAccountPage extends BasePage {
     await this.openAccountButton.click();
   }
 
-  async createAccount(accountType: 'CHECKING' | 'SAVINGS' = 'CHECKING'): Promise<string> {
+  async createAccount(accountType: AccountType = getAccountData().defaultType): Promise<string> {
     await this.open();
     await this.selectAccountType(accountType);
     await this.selectFirstFundingAccount();
@@ -69,7 +70,7 @@ export class OpenAccountPage extends BasePage {
 
   async verifyAccountOpened(): Promise<void> {
     await expect(this.accountOpenedHeading).toBeVisible();
-    await expect(this.page.getByText('Congratulations, your account is now open.')).toBeVisible();
+    await expect(this.page.getByText(getCommonMessages().accountOpenedSuccess)).toBeVisible();
   }
 
   async getNewAccountId(): Promise<string> {

@@ -2,7 +2,7 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { CustomWorld } from '../support/world';
 import { LoginPage } from '../pages/login.page';
-import { getLoginCredentials } from '../utils/faker.util';
+import { getLoginCredentials } from '../support/testDataHelper';
 
 // Fetch login credentials either from test data utility
 // or fallback to environment variables.

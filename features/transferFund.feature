@@ -4,110 +4,112 @@ Feature: Fund Transfer - Pay Anyone / Transfer Funds
   Background:
     Given user is logged into ParaBank
     
-  # Positive Scenarios
-  @smoke @positive
+  # Core Business Flow
+  @smoke @sanity @regression @positive @core
   Scenario: Transfer money between two own accounts
      When user transfers 100 from source account to destination account
      Then transfer should be successful
      And source account balance should decrease by 100
      And destination account balance should increase by 100
 
-  @positive
+ # Boundary Tests
+  @boundary @regression
   Scenario: Transfer full available balance
      When user transfers complete available balance
      Then transfer should be successful
      And source account balance should become zero
 
-  @positive
+  @boundary @regression
   Scenario: Transfer minimum valid amount
      When user transfers 1 amount
      Then transfer should be successful
 
-  @positive
+  @regression @positive
   Scenario: Transfer amount with two decimal places
      When user transfers 100.50 amount
      Then transfer should be successful
 
-  @positive
+  @regression @positive
   Scenario: Transfer large amount within available balance
      When user transfers a large valid amount
      Then transfer should be successful
 
-  @positive
+  # Transaction Verification
+  @regression @verification
   Scenario: Verify success confirmation message
      When user performs a valid transfer
      Then success confirmation message should be displayed
 
-  @positive
+  @regression @verification
   Scenario: Verify transaction id is generated
      When user performs a valid transfer
      Then transaction details should be displayed
 
-  @positive
+  @regression @ledger
   Scenario: Verify source account debit transaction entry
      When user performs a valid transfer
      Then source account should contain a debit entry
 
-  @positive
+  @regression @ledger
   Scenario: Verify destination account credit transaction entry
      When user performs a valid transfer
      Then destination account should contain a credit entry
 
-  @positive
+  @regression @ledger
   Scenario: Verify updated balances after transfer
      When user performs a valid transfer
      Then balances should be updated correctly
 
   # Negative Scenarios
-  @negative
+  @negative @regression
   Scenario: Transfer amount greater than available balance
      When user transfers amount greater than available balance
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer zero amount
      When user enters transfer amount as 0
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer negative amount
      When user enters transfer amount as -100
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer non numeric amount
      When user enters transfer amount as abc
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer special characters as amount
      When user enters transfer amount as @@@
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer amount with more than two decimal places
      When user enters transfer amount as 100.999
      Then transfer should not be successful
 
-  @negative
+  @negative @regression
   Scenario: Transfer from same account to same account
      When user selects same source and destination account
      Then transfer should not be successful
 
   # Boundary Scenarios
-  @boundary
+  @boundary  @regression
   Scenario: Transfer exact available balance
      When user transfers exact available balance
      Then transfer should be successful
      And source account balance should become zero
 
-  @boundary
+  @boundary @regression
   Scenario: Verify account balance after multiple transfers
      When user performs multiple valid transfers
      Then final balance should be calculated correctly
 
   # Flagship E2E Scenario (Assessment Main Deliverable)
-  @regression @e2e
+  @e2e @regression @flagship @assessment @ledger
   Scenario: Customer performs multiple fund transfers in a day
      Given user captures source account opening balance
      When user performs fund transfers with following amounts

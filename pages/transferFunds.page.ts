@@ -1,4 +1,5 @@
 import { expect, Locator, Page } from 'playwright/test';
+import { getCommonMessages } from '../support/testDataHelper';
 import { BasePage } from './basepage';
 
 export interface TransferResult {
@@ -20,7 +21,7 @@ export class TransferFundsPage extends BasePage {
   private readonly toAccountSelect = this.page.locator('#toAccountId');
   private readonly amountInput = this.page.locator('#amount');
   private readonly transferButton = this.page.locator('input[value="Transfer"]');
-  private readonly confirmationHeading = this.page.getByRole('heading', { name: 'Transfer Complete!', exact: true });
+  private readonly confirmationHeading = this.page.getByRole('heading', { name: getCommonMessages().transferCompleteHeading, exact: true });
   private readonly confirmationPanel = this.page.locator('#showResult');
   private readonly validationError = this.page.locator('.error:visible').first();
   private readonly transactionLink = this.page.locator('#showResult a').first();
