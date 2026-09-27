@@ -3,6 +3,16 @@ Feature: Accounts & Balances
   Background:
     Given user is logged into Parabank
 
+  @Accounts @Checking
+  Scenario: Verify user can open a new CHECKING account
+    When I open the Open New Account page
+    And I select the CHECKING account type
+    And I select the first available funding account
+    And I submit the new account request
+    Then the account opened success message should be displayed
+    And a new account ID should be generated
+    And the new account ID should be visible in Accounts Overview
+
   @Accounts
   Scenario: Verify user can open a new Checking Account
     When user opens a new "CHECKING" account
