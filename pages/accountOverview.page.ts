@@ -131,8 +131,12 @@ export class AccountsOverviewPage extends BasePage {
 	}
 
 	async verifyAccountBalanceIsValid(): Promise<void> {
-		const balance = (await this.getText(this.accountBalanceCells.first())).trim();
-		expect(balance).not.toBe('');
-		expect(balance).not.toBe('$0.00');
+		const balanceText = (await this.getText(this.accountBalanceCells.first())).trim();
+		const normalizedBalance = balanceText.replace(/[$,]/g, '').trim();
+		const balance = Number(normalizedBalance);
+
+		expect(normalizedBalance).not.toBe('');
+		expect(Number.isFinite(balance)).toBe(true);
+		expect(balance).toBeGreaterThan(0);
 	}
 }

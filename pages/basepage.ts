@@ -1,8 +1,8 @@
 import { expect } from 'playwright/test';
-import { Locator, Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 
 export class BasePage {
-    protected page: Page;
+    protected readonly page: Page;
 
     constructor(page: Page) {
         this.page = page;
@@ -34,6 +34,10 @@ export class BasePage {
 
     async waitForElement(locator: Locator): Promise<void> {
         await locator.waitFor({ state: 'visible' });
+    }
+
+    async expectVisible(locator: Locator): Promise<void> {
+        await expect(locator).toBeVisible();
     }
 
     async getAttribute(locator: Locator, attribute: string): Promise<string | null> {

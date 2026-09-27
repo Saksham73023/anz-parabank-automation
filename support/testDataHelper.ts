@@ -43,6 +43,11 @@ export interface ParaBankTestData {
       xssUsername: string;
     };
   };
+  registrationValidation: {
+    usernameMaxLength: number;
+    passwordMismatch: string;
+    requiredFields: string[];
+  };
   accountData: { defaultType: AccountType; supportedTypes: AccountType[] };
   transferFundsData: { dailyAmounts: number[] };
   billPaymentData: {
@@ -63,6 +68,7 @@ export interface ParaBankTestData {
   };
   validationMessages: {
     usernameAlreadyExists: string;
+    login: { invalidCredentials: string };
     billPayment: {
       accountMismatch: string;
       amount: string;
@@ -94,6 +100,10 @@ export function getLoginCredentials(): LoginCredentials {
 
 export function getRegistrationData(): ParaBankTestData['registrationData'] {
   return getTestData().registrationData;
+}
+
+export function getRegistrationValidation(): ParaBankTestData['registrationValidation'] {
+  return getTestData().registrationValidation;
 }
 
 export function getAccountData(): ParaBankTestData['accountData'] {

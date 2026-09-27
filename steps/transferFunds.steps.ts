@@ -4,7 +4,7 @@ import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
 import { OpenAccountPage } from '../pages/openAccount.page';
 import { RegistrationData, RegistrationPage } from '../pages/registration.page';
-import { dailyTransferAmounts, transferAmounts } from '../support/testDataHelper';
+import { dailyTransferAmounts, getCommonMessages, transferAmounts } from '../support/testDataHelper';
 import { createRegistrationData } from '../testData/dynamicData';
 import { CustomWorld } from '../support/world';
 
@@ -22,7 +22,7 @@ async function registerFreshTransferUser(world: CustomWorld): Promise<void> {
     try {
       const registrationPage = new RegistrationPage(world.page!);
       await registrationPage.open();
-      await registrationPage.register(freshTransferUser());
+      await registrationPage.register(freshTransferUser(), getCommonMessages().registrationSuccess);
       return;
     } catch (error) {
       lastError = error;

@@ -24,6 +24,21 @@
       "xssUsername": "<script>alert(\"xss\")</script>"
     }
   },
+  "registrationValidation": {
+    "usernameMaxLength": 30,
+    "passwordMismatch": "Passwords did not match",
+    "requiredFields": [
+      "First name is required.",
+      "Last name is required.",
+      "Address is required.",
+      "City is required.",
+      "State is required.",
+      "Zip Code is required.",
+      "Social Security Number is required.",
+      "Username is required.",
+      "Password is required."
+    ]
+  },
   "accountData": {
     "defaultType": "CHECKING",
     "supportedTypes": ["CHECKING", "SAVINGS"]
@@ -110,6 +125,9 @@
   },
   "validationMessages": {
     "usernameAlreadyExists": "already exists",
+    "login": {
+      "invalidCredentials": "The username and password could not be verified."
+    },
     "billPayment": {
       "accountMismatch": "account numbers? do not match|accounts do not match",
       "amount": "amount.*(required|greater|positive|valid|zero)|required.*amount",

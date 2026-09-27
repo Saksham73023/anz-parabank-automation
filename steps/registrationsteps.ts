@@ -1,9 +1,10 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { AccountsOverviewPage } from '../pages/accountOverview.page';
+import { LoginPage } from '../pages/login.page';
 import { RegistrationPage } from '../pages/registration.page';
 import { createRegistrationData } from '../testData/dynamicData';
-import { getCommonMessages, getLoginCredentials, getRegistrationData, getValidationMessages } from '../support/testDataHelper';
+import { getCommonMessages, getLoginCredentials, getRegistrationData, getRegistrationValidation, getValidationMessages } from '../support/testDataHelper';
 import { CustomWorld } from '../support/world';
 
 Given('I am on the ParaBank registration page', async function (this: CustomWorld) {
@@ -12,7 +13,7 @@ Given('I am on the ParaBank registration page', async function (this: CustomWorl
 
 When('I register a new ParaBank customer with Faker data', async function (this: CustomWorld) {
     const registrationPage = new RegistrationPage(this.page!);
-    await registrationPage.register(createRegistrationData());
+    await registrationPage.register(createRegistrationData(), getCommonMessages().registrationSuccess);
 });
 
 Then('the new customer should be automatically logged in', async function (this: CustomWorld) {
@@ -37,9 +38,16 @@ Then('the account balance should not be empty or zero', async function (this: Cu
 });
 
 Given('Existing user already exists', async function (this: CustomWorld) {
+    const credentials = getLoginCredentials();
+    const loginPage = new LoginPage(this.page!);
+    await loginPage.open();
+    await loginPage.login(credentials.username, credentials.password);
+    await expect(this.page!.getByRole('link', { name: 'Log Out' })).toBeVisible();
+    await loginPage.logout();
+
     const registrationPage = new RegistrationPage(this.page!);
     await registrationPage.open();
-    this.registrationData = createRegistrationData({ username: getLoginCredentials().username });
+    this.registrationData = createRegistrationData({ username: credentials.username });
 });
 
 When('User registers with same username', async function (this: CustomWorld) {
@@ -62,8 +70,7 @@ When('User submits registration form without entering mandatory data', async fun
 
 Then('Required field validation messages should be displayed', async function (this: CustomWorld) {
     const errors = this.page!.locator('.error:visible');
-    await errors.first().waitFor({ state: 'visible' });
-    expect(await errors.count()).toBeGreaterThan(0);
+    await expect(errors).toContainText(getRegistrationValidation().requiredFields);
 });
 
 When('User enters different password and confirm password', async function (this: CustomWorld) {
@@ -74,13 +81,14 @@ When('User enters different password and confirm password', async function (this
 });
 
 Then('Password mismatch error should be displayed', async function (this: CustomWorld) {
-    await expect(this.page!.locator('.error:visible')).toContainText('Passwords did not match');
+    await expect(this.page!.locator('.error:visible'))
+        .toContainText(getRegistrationValidation().passwordMismatch);
 });
 
 Given('User has registered successfully', async function (this: CustomWorld) {
     const registrationPage = new RegistrationPage(this.page!);
     await registrationPage.open();
-    await registrationPage.register(createRegistrationData());
+    await registrationPage.register(createRegistrationData(), getCommonMessages().registrationSuccess);
 });
 
 Then('Accounts Overview page should display', async function (this: CustomWorld) {
@@ -103,9 +111,11 @@ When('User enters username with more than allowed characters', async function (t
     const registrationPage = new RegistrationPage(this.page!);
     await registrationPage.open();
     const data = createRegistrationData();
+    const maxLength = getRegistrationValidation().usernameMaxLength;
+    const uniqueUsername = `${data.username}${Date.now().toString(36)}`;
     await registrationPage.fillRegistrationForm({
         ...data,
-        username: `${data.username}${'x'.repeat(60)}`
+        username: uniqueUsername.slice(0, maxLength).padEnd(maxLength + 1, 'x')
     });
 });
 
@@ -118,7 +128,7 @@ Then('Registration should not be successful', async function (this: CustomWorld)
     await expect(this.page!.getByRole('link', { name: 'Log Out' })).not.toBeVisible();
 });
 
-Then('Appropriate validation message should be displayed', async function (this: CustomWorld) {
+Then('Registration error should be displayed', async function (this: CustomWorld) {
     await expect(this.page!.locator('.error:visible').first()).toBeVisible();
 });
 

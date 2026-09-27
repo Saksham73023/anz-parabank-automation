@@ -1,17 +1,21 @@
 import { Given, Then, When } from '@cucumber/cucumber';
-import { expect } from 'playwright/test';
 import { CustomWorld } from '../support/world';
 import { LoginPage } from '../pages/login.page';
-import { getLoginCredentials } from '../support/testDataHelper';
+import { getLoginCredentials, getValidationMessages } from '../support/testDataHelper';
+import { createRandomUsername, createRuntimeValue } from '../testData/dynamicData';
 
 // Fetch login credentials either from test data utility
 // or fallback to environment variables.
 function configuredCredentials(): { username: string; password: string } {
   const credentials = getLoginCredentials();
-  return {
-    username: credentials.username || process.env.PARABANK_USERNAME || '',
-    password: credentials.password || process.env.PARABANK_PASSWORD || ''
-  };
+  const username = process.env.PARABANK_USERNAME?.trim() || credentials.username;
+  const password = process.env.PARABANK_PASSWORD || credentials.password;
+
+  if (!username || !password) {
+    throw new Error('Valid ParaBank login credentials are not configured.');
+  }
+
+  return { username, password };
 }
 
 // Navigate user to ParaBank login page.
@@ -36,13 +40,24 @@ Given('User is on Login page', async function (this: CustomWorld) {
 // Enter valid username and invalid password.
 When('User enters valid username and invalid password', async function (this: CustomWorld) {
   const loginPage = new LoginPage(this.page!);
-  await loginPage.fillCredentials(configuredCredentials().username, 'invalid-password');
+  const credentials = configuredCredentials();
+  await loginPage.fillCredentials(credentials.username, createRuntimeValue());
 });
 
 // Enter invalid username and valid password.
 When('User enters invalid username and valid password', async function (this: CustomWorld) {
   const loginPage = new LoginPage(this.page!);
-  await loginPage.fillCredentials(`invalid-${Date.now()}`, configuredCredentials().password);
+  const credentials = configuredCredentials();
+  await loginPage.fillCredentials(createRandomUsername('invalid'), credentials.password);
+});
+
+When('User enters invalid username and invalid password', async function (this: CustomWorld) {
+  const loginPage = new LoginPage(this.page!);
+  const credentials = configuredCredentials();
+  await loginPage.fillCredentials(
+    createRandomUsername('invalid'),
+    `${credentials.password}-${createRuntimeValue()}`
+  );
 });
 
 // Click on Login button.
@@ -56,8 +71,14 @@ When('User clicks Login button without entering credentials', async function (th
 });
 
 // Verify login error message is displayed
-Then('Error message should be displayed', async function (this: CustomWorld) {
-  await new LoginPage(this.page!).verifyLoginError();
+Then('Invalid login error should be displayed', async function (this: CustomWorld) {
+  await new LoginPage(this.page!).verifyLoginRejected(
+    getValidationMessages().login.invalidCredentials
+  );
+});
+
+Then('Login should remain unauthenticated', async function (this: CustomWorld) {
+  await new LoginPage(this.page!).verifyBlankLoginRemainsUnauthenticated();
 });
 
 // Login with valid user and ensure application home page is displayed
@@ -66,7 +87,7 @@ Given('User is logged into application', async function (this: CustomWorld) {
   const credentials = configuredCredentials();
   await loginPage.open();
   await loginPage.login(credentials.username, credentials.password);
-  await this.page!.getByRole('heading', { name: 'Accounts Overview', exact: true }).waitFor();
+  await loginPage.verifyLoginSucceeded();
 });
 
 // Logout from the application.
@@ -79,7 +100,11 @@ Then('User should be redirected to Login page', async function (this: CustomWorl
   await new LoginPage(this.page!).verifyLoginPageDisplayed();
 });
 
+Then('protected account pages should require login', async function (this: CustomWorld) {
+  await new LoginPage(this.page!).verifyProtectedPageRequiresLogin();
+});
+
 // Verify Accounts Overview page is displayed after successful login.
 Then('I should see the ParaBank account overview', async function (this: CustomWorld) {
-  await expect(this.page!.getByRole('heading', { name: 'Accounts Overview', exact: true })).toBeVisible();
+  await new LoginPage(this.page!).verifyLoginSucceeded();
 });

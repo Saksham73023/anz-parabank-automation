@@ -42,7 +42,7 @@ Feature: ParaBank customer registration
     When User enters username with more than allowed characters
     And User submits registration form
     Then Registration should not be successful
-    And Appropriate validation message should be displayed
+    And Registration error should be displayed
 
  @boundary @security @specialchars
   Scenario: Verify registration with special characters in username

@@ -1,60 +1,96 @@
-import { Page } from 'playwright';
+import { expect } from 'playwright/test';
+import type { Locator, Page } from 'playwright';
+import { BasePage } from './basepage';
 
-export class LoginPage {
-  // Login page locators
-  private readonly usernameInput;
-  private readonly passwordInput;
-  private readonly loginButton;
-  private readonly loginError;
-  private readonly logoutLink;
+const DEFAULT_BASE_URL = 'https://parabank.parasoft.com/parabank/index.htm';
 
-  constructor(private readonly page: Page) {
+export class LoginPage extends BasePage {
+  private readonly usernameInput: Locator;
+  private readonly passwordInput: Locator;
+  private readonly loginButton: Locator;
+  private readonly loginError: Locator;
+  private readonly logoutLink: Locator;
+  private readonly accountOverviewHeading: Locator;
+  private readonly loginRoute = /\/(?:index|login)\.htm(?:;[^/?#]+)?(?:\?[^#]*)?$/;
+
+  constructor(page: Page) {
+    super(page);
     this.usernameInput = page.locator('input[name="username"]');
     this.passwordInput = page.locator('input[name="password"]');
-    this.loginButton = page.locator('input[value="Log In"]');
-    this.loginError = page.locator('.error:visible').first();
+    this.loginButton = page.locator('input[type="submit"][value="Log In"]');
+    this.loginError = page.locator('.error:visible');
     this.logoutLink = page.getByRole('link', { name: 'Log Out' });
-  }
-  
-  //Navigate to ParaBank login page
-  async open(): Promise<void> {
-    await this.page.goto(
-      process.env.BASE_URL ?? 'https://parabank.parasoft.com/parabank/index.htm',
-      { waitUntil: 'domcontentloaded' }
-    );
-    await this.usernameInput.waitFor({ state: 'visible' });
+    this.accountOverviewHeading = page.getByRole('heading', {
+      name: 'Accounts Overview',
+      exact: true
+    });
   }
 
- // Perform user login
+  async open(): Promise<void> {
+    await this.navigate(process.env.BASE_URL ?? DEFAULT_BASE_URL);
+    await this.verifyLoginPageDisplayed();
+  }
+
   async login(username: string, password: string): Promise<void> {
     await this.fillCredentials(username, password);
     await this.loginButton.click();
   }
 
-  //Enter username and password
   async fillCredentials(username: string, password: string): Promise<void> {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
   }
 
-  //Click Login button
   async clickLogin(): Promise<void> {
     await this.loginButton.click();
   }
-  //Verify login error is displayed
-  async verifyLoginError(): Promise<void> {
-    await this.loginError.waitFor({ state: 'visible' });
+
+  async verifyLoginSucceeded(): Promise<void> {
+    await expect(this.page).toHaveURL(/\/overview\.htm(?:;[^/?#]+)?(?:\?[^#]*)?$/);
+    await expect(this.accountOverviewHeading).toBeVisible();
+    await expect(this.logoutLink).toBeVisible();
+    await expect(this.usernameInput).toBeHidden();
   }
 
-  // Verify login error is displayed
+  async verifyLoginRejected(expectedMessage: string): Promise<void> {
+    await expect(this.loginError.first()).toHaveText(expectedMessage);
+    await expect(this.page).toHaveURL(this.loginRoute);
+    await expect(this.logoutLink).toBeHidden();
+    await expect(this.accountOverviewHeading).toBeHidden();
+  }
+
+  async verifyBlankLoginRemainsUnauthenticated(): Promise<void> {
+    await expect(this.page).toHaveURL(this.loginRoute);
+    await expect(this.usernameInput).toBeVisible();
+    await expect(this.usernameInput).toHaveValue('');
+    await expect(this.passwordInput).toBeVisible();
+    await expect(this.passwordInput).toHaveValue('');
+    await expect(this.logoutLink).toBeHidden();
+    await expect(this.accountOverviewHeading).toBeHidden();
+  }
+
   async logout(): Promise<void> {
+    await expect(this.logoutLink).toBeVisible();
     await this.logoutLink.click();
   }
 
-  // Verify user is navigated back to login page
   async verifyLoginPageDisplayed(): Promise<void> {
-    await this.usernameInput.waitFor({ state: 'visible' });
-    await this.passwordInput.waitFor({ state: 'visible' });
-    await this.loginButton.waitFor({ state: 'visible' });
+    await expect(this.page).toHaveURL(this.loginRoute);
+    await expect(this.usernameInput).toBeVisible();
+    await expect(this.passwordInput).toBeVisible();
+    await expect(this.loginButton).toBeVisible();
+    await expect(this.logoutLink).toBeHidden();
+    await expect(this.accountOverviewHeading).toBeHidden();
+  }
+
+  async verifyProtectedPageRequiresLogin(): Promise<void> {
+    const overviewUrl = new URL('overview.htm', process.env.BASE_URL ?? DEFAULT_BASE_URL);
+    await this.page.goto(overviewUrl.toString(), { waitUntil: 'domcontentloaded' });
+    await expect(this.page).toHaveURL(/\/overview\.htm(?:;[^/?#]+)?(?:\?[^#]*)?$/);
+    await expect(this.usernameInput).toBeVisible();
+    await expect(this.passwordInput).toBeVisible();
+    await expect(this.loginButton).toBeVisible();
+    await expect(this.logoutLink).toBeHidden();
+    await expect(this.accountOverviewHeading).toBeHidden();
   }
 }

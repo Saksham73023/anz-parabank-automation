@@ -12,23 +12,31 @@ Feature: ParaBank login
     Given User is on Login page
     When User enters valid username and invalid password
     And User clicks Login button
-    Then Error message should be displayed
+    Then Invalid login error should be displayed
 
    @smoke @negative @invalidUsername
   Scenario: Verify login fails with invalid username
    Given User is on Login page
    When User enters invalid username and valid password
    And User clicks Login button
-   Then Error message should be displayed
+   Then Invalid login error should be displayed
+
+  @smoke @negative @invalidBoth
+  Scenario: Verify login fails with invalid username and password
+    Given User is on Login page
+    When User enters invalid username and invalid password
+    And User clicks Login button
+    Then Invalid login error should be displayed
 
    @smoke @negative @blankCredentials
   Scenario: Verify login fails with blank credentials
    Given User is on Login page
    When User clicks Login button without entering credentials
-   Then Error message should be displayed
+  Then Login should remain unauthenticated
 
    @smoke @positive @logout
   Scenario: Verify user can logout successfully
    Given User is logged into application
    When User clicks Logout
    Then User should be redirected to Login page
+  And protected account pages should require login

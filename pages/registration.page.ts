@@ -46,11 +46,11 @@ export class RegistrationPage extends BasePage {
 		await this.waitForElement(this.usernameInput);
 	}
 
-	async register(data: RegistrationData): Promise<void> {
+	async register(data: RegistrationData, expectedSuccessMessage: string): Promise<void> {
 		await this.fillRegistrationForm(data);
 		await this.submit();
 
-		const successMessage = this.page.getByText('Your account was created successfully. You are now logged in.');
+		const successMessage = this.page.getByText(expectedSuccessMessage);
 		await Promise.race([
 			successMessage.waitFor({ state: 'visible' }),
 			this.registrationError.waitFor({ state: 'visible' })
@@ -79,7 +79,7 @@ export class RegistrationPage extends BasePage {
 		await this.click(this.registerButton);
 	}
 
-	async isRegistrationSuccessful(): Promise<boolean> {
-		return this.isVisible(this.page.getByText('Your account was created successfully. You are now logged in.'));
+	async isRegistrationSuccessful(expectedSuccessMessage: string): Promise<boolean> {
+		return this.isVisible(this.page.getByText(expectedSuccessMessage));
 	}
 }
