@@ -2,7 +2,7 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { LoginPage } from '../pages/login.page';
 import { OpenAccountPage } from '../pages/openAccount.page';
-import { getLoginCredentials } from '../testData/faker.util';
+import { getLoginCredentials } from '../utils/faker.util';
 import { CustomWorld } from '../support/world';
 
 type AccountScenarioWorld = CustomWorld & { newAccountId?: string };

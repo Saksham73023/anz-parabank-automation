@@ -3,7 +3,7 @@ import { expect } from 'playwright/test';
 import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { LoginPage } from '../pages/login.page';
 import { OpenAccountPage } from '../pages/openAccount.page';
-import { getLoginCredentials } from '../testData/faker.util';
+import { getLoginCredentials } from '../utils/faker.util';
 import { CustomWorld } from '../support/world';
 
 type AccountOverviewWorld = CustomWorld & {

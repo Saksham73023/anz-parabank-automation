@@ -2,7 +2,7 @@ import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { RegistrationPage } from '../pages/registration.page';
-import { createRegistrationData } from '../testData/faker.util';
+import { createRegistrationData } from '../utils/faker.util';
 import { CustomWorld } from '../support/world';
 
 Given('I am on the ParaBank registration page', async function (this: CustomWorld) {
