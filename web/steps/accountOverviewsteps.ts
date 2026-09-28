@@ -183,7 +183,7 @@ When('user accesses Open Account page', async function (this: AccountOverviewWor
 });
 
 Then('user should be redirected to Login page', async function (this: AccountOverviewWorld) {
-  await new LoginPage(this.page!).verifyLoginPageDisplayed();
+  await new LoginPage(this.page!).verifyAuthenticationRequired();
 });
 
 When('user fetches account balance from UI', async function (this: AccountOverviewWorld) {

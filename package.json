@@ -6,6 +6,9 @@
   "scripts": {
     "test": "cucumber-js",
     "test:headed": "cross-env HEADLESS=false cucumber-js",
+    "test:web": "cucumber-js -p web",
+    "test:api": "cucumber-js -p api",
+    "test:mobile": "cucumber-js -p mobile",
     "test:smoke": "cucumber-js --tags @smoke",
     "typecheck": "tsc --noEmit"
   },

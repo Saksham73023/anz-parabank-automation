@@ -1,0 +1,8 @@
+{
+  "accountId": "",
+  "transfer": {
+    "sourceAccountId": "",
+    "destinationAccountId": "",
+    "amount": 1
+  }
+}

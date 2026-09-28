@@ -83,6 +83,16 @@ export class LoginPage extends BasePage {
     await expect(this.accountOverviewHeading).toBeHidden();
   }
 
+  async verifyAuthenticationRequired(): Promise<void> {
+    await expect(this.page).toHaveURL(/\/(?:index|login|openaccount)\.htm(?:;[^/?#]+)?(?:\?[^#]*)?$/);
+    await expect(this.usernameInput).toBeVisible();
+    await expect(this.passwordInput).toBeVisible();
+    await expect(this.loginButton).toBeVisible();
+    await expect(this.logoutLink).toBeHidden();
+    await expect(this.accountOverviewHeading).toBeHidden();
+    await expect(this.page.locator('select#type')).toBeHidden();
+  }
+
   async verifyProtectedPageRequiresLogin(): Promise<void> {
     const overviewUrl = new URL('overview.htm', process.env.BASE_URL ?? DEFAULT_BASE_URL);
     await this.page.goto(overviewUrl.toString(), { waitUntil: 'domcontentloaded' });

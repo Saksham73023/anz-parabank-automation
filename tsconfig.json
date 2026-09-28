@@ -9,5 +9,5 @@
     "types": ["node"],
     "outDir": "dist"
   },
-  "include": ["features/**/*.ts", "pages/**/*.ts", "steps/**/*.ts", "support/**/*.ts"]
+  "include": ["api/**/*.ts", "mobile/**/*.ts", "web/**/*.ts"]
 }
