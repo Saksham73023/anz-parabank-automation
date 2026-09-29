@@ -184,9 +184,7 @@ export class TransferFundsPage extends BasePage {
   }
 
   async getCurrentBalance(accountId: string): Promise<number> {
-    await this.openAccountActivity(accountId);
-    const balance = this.page.locator('#balance');
-    return this.parseAmount((await balance.getAttribute('value')) ?? (await balance.textContent()) ?? '');
+    return this.getAccountBalance(accountId);
   }
 
   private parseAmount(value: string): number {
