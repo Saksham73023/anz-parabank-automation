@@ -1,34 +1,47 @@
 import { request as playwrightRequest } from 'playwright';
 import type { APIRequestContext, APIResponse } from 'playwright';
+import { getApiConfig } from './config/environmentConfig';
+import { AuthenticationManager } from './services/authenticationManager';
+import { RequestBuilder } from './utils/requestBuilder';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type ApiAuthentication =
+  | { type: 'none' }
+  | { type: 'bearer'; token: string }
+  | { type: 'basic'; username: string; password: string };
 
 export interface ApiRequestOptions {
   params?: Record<string, string | number | boolean>;
+  queryParams?: Record<string, string | number | boolean>;
+  pathParams?: Record<string, string | number>;
   data?: unknown;
   headers?: Record<string, string>;
+  authentication?: ApiAuthentication;
   expectedStatus?: number | number[];
 }
-
-const DEFAULT_API_BASE_URL = 'https://parabank.parasoft.com/parabank/services/bank';
 
 export class ApiClient {
   private constructor(private readonly context: APIRequestContext) {}
 
   static async create(): Promise<ApiClient> {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    const token = process.env.API_TOKEN?.trim();
-    const cookie = process.env.API_COOKIE?.trim();
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (cookie) headers.Cookie = cookie;
+    const config = getApiConfig();
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...(config.authentication.type === 'none' ? {} : AuthenticationManager.toHeaders(config.authentication))
+    };
+    if (config.cookie) headers.Cookie = config.cookie;
 
     const context = await playwrightRequest.newContext({
-      baseURL: process.env.API_BASE_URL?.trim() || DEFAULT_API_BASE_URL,
+      baseURL: config.baseURL,
       extraHTTPHeaders: headers,
-      timeout: Number(process.env.API_TIMEOUT ?? 30000),
-      ignoreHTTPSErrors: process.env.API_IGNORE_HTTPS_ERRORS === 'true'
+      timeout: config.timeout,
+      ignoreHTTPSErrors: config.ignoreHTTPSErrors
     });
     return new ApiClient(context);
+  }
+
+  request(method: HttpMethod, path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
+    return this.send(method, path, options);
   }
 
   get(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
@@ -43,6 +56,10 @@ export class ApiClient {
     return this.send('PUT', path, options);
   }
 
+  patch(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
+    return this.send('PATCH', path, options);
+  }
+
   delete(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('DELETE', path, options);
   }
@@ -52,12 +69,18 @@ export class ApiClient {
   }
 
   private async send(method: HttpMethod, path: string, options: ApiRequestOptions): Promise<APIResponse> {
-    const { expectedStatus, ...requestOptions } = options;
-    const response = await this.context.fetch(path, {
+    const builtRequest = RequestBuilder.build(path, options);
+    const requestHeaders = {
+      ...builtRequest.headers,
+      ...(options.authentication ? AuthenticationManager.toHeaders(options.authentication) : {})
+    };
+    const response = await this.context.fetch(builtRequest.path, {
       method,
-      ...requestOptions,
+      ...builtRequest.options,
+      headers: requestHeaders,
       failOnStatusCode: false
     });
+    const { expectedStatus } = options;
     const allowedStatuses = expectedStatus === undefined
       ? undefined
       : Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];

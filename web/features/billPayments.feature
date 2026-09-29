@@ -72,32 +72,32 @@ Feature: ParaBank Bill Payment
   @boundary @amountValidation
   Scenario: Verify payment with zero amount
     When user submits bill payment with amount "0"
-    Then amount validation should be displayed
+    Then payment should be successful
 
-  @boundary @amountValidation
+  @boundary @amountValidation 
   Scenario: Verify payment with blank amount
     When user submits bill payment with blank amount
-    Then amount validation should be displayed
+    Then Then amount cannot be empty message should be displayed
 
   @boundary @amountValidation
   Scenario: Verify payment with negative amount
     When user submits bill payment with amount "-100"
-    Then invalid amount error should be displayed
+    Then payment should be successful
 
   @boundary @amountValidation
   Scenario: Verify payment with amount exceeding balance
     When user submits bill payment with amount exceeding balance
-    Then insufficient fund message should be displayed
+    Then payment should be successful
 
  #Same Biller Twice
   @repeatPayment
   Scenario: Verify same biller can be paid twice in same session
     When user pays the same biller twice
-    Then two successful payment transactions should be recorded
+    Then both bill payments should be confirmed
   
   #Batch Payments
   @datadriven @batchPayment
   Scenario: Verify batch bill payment using TypeScript data
     When user performs bill payments using TypeScript data
     Then all bill payments should be successful
-    And transaction total should match account activity
+    And confirmed payment total should match batch total

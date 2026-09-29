@@ -41,7 +41,18 @@ export class RegistrationPage extends BasePage {
 		if (await logoutLink.isVisible()) {
 			await logoutLink.click();
 		}
-		await this.registerLink.waitFor({ state: 'visible' });
+		const verificationPage = this.page.getByText(/performing security verification|verify you are human/i).first();
+		if (await verificationPage.isVisible().catch(() => false)) {
+			if (process.env.HEADLESS !== 'false') {
+				throw new Error('Cloudflare human verification is blocking ParaBank. Rerun this scenario headed and complete the verification manually.');
+			}
+			await this.registerLink.waitFor({
+				state: 'visible',
+				timeout: Number(process.env.CLOUDFLARE_TIMEOUT_MS ?? 120000)
+			});
+		} else {
+			await this.registerLink.waitFor({ state: 'visible' });
+		}
 		await this.click(this.registerLink);
 		await this.waitForElement(this.usernameInput);
 	}

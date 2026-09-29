@@ -132,6 +132,7 @@
       "accountMismatch": "account numbers? do not match|accounts do not match",
       "amount": "amount.*(required|greater|positive|valid|zero)|required.*amount",
       "invalidAmount": "invalid amount|amount.*(greater than zero|positive|valid)",
+      "amountEmpty": "amount.*(cannot be empty|empty|required)|required.*amount",
       "insufficientFunds": "insufficient funds|sufficient funds|not enough funds"
     }
   },

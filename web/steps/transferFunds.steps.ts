@@ -25,6 +25,7 @@ async function registerFreshTransferUser(world: CustomWorld): Promise<void> {
       await registrationPage.register(freshTransferUser(), getCommonMessages().registrationSuccess);
       return;
     } catch (error) {
+      if (error instanceof Error && error.message.includes('Cloudflare human verification')) throw error;
       lastError = error;
     }
   }

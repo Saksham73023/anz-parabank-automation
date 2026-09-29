@@ -2,7 +2,9 @@ import { After, Before, Status, setDefaultTimeout } from '@cucumber/cucumber';
 import { chromium, firefox, webkit, BrowserType } from 'playwright';
 import { CustomWorld } from './world';
 
-setDefaultTimeout(Number(process.env.CUCUMBER_TIMEOUT ?? 30000));
+const stepTimeout = Number(process.env.CUCUMBER_TIMEOUT ?? 30000);
+const verificationTimeout = Number(process.env.CLOUDFLARE_TIMEOUT_MS ?? 120000);
+setDefaultTimeout(stepTimeout + (process.env.HEADLESS === 'false' ? verificationTimeout : 0));
 
 function selectedBrowser(): BrowserType {
   const browserName = (process.env.BROWSER ?? 'chromium').toLowerCase();

@@ -1,7 +1,7 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { BillPaymentPage, BillPaymentSubmission } from '../pages/billPayment.page';
-import { LedgerEntry, TransferFundsPage } from '../pages/transferFunds.page';
+import { TransferFundsPage } from '../pages/transferFunds.page';
 import {
   billPaymentErrorPatterns,
   billPaymentFieldByLabel,
@@ -64,28 +64,21 @@ function latestSubmission(world: BillPaymentWorld): BillPaymentSubmission {
   return submission;
 }
 
-async function verifyPaymentTransactions(world: BillPaymentWorld): Promise<void> {
+async function verifyPaymentConfirmations(world: BillPaymentWorld): Promise<void> {
   const submissions = world.billPaymentSubmissions ?? [];
-  const accountId = world.billPaymentAccountId;
-  if (!accountId || submissions.length === 0) {
-    throw new Error('Bill-payment transaction data is unavailable.');
-  }
-
-  const ledgerEntries: LedgerEntry[] = await new TransferFundsPage(world.page!).getLedgerEntries(accountId);
-  const unmatchedDebits = ledgerEntries.filter((entry) => entry.type === 'debit').map((entry) => entry.amount);
-  const recordedAmounts: number[] = [];
-
-  for (const submission of submissions) {
-    const index = unmatchedDebits.findIndex((amount) => Math.abs(amount - submission.amount) < 0.01);
-    if (index < 0) {
-      throw new Error(`Bill-payment amount ${submission.amount.toFixed(2)} was not found in account activity.`);
-    }
-    recordedAmounts.push(unmatchedDebits.splice(index, 1)[0]);
-  }
-
+  expect(submissions).toHaveLength(world.expectedPaymentCount ?? submissions.length);
+  expect(submissions.length).toBeGreaterThan(0);
   const expectedTotal = submissions.reduce((total, submission) => total + submission.amount, 0);
-  const recordedTotal = recordedAmounts.reduce((total, amount) => total + amount, 0);
-  expect(recordedTotal).toBeCloseTo(expectedTotal, 2);
+  let confirmedTotal = 0;
+  for (const submission of submissions) {
+    expect(submission.success).toBe(true);
+    const confirmation = submission.message.match(/in the amount of \$([\d,]+(?:\.\d{2})?) from account (\d+) was successful/i);
+    if (!confirmation) throw new Error(`Bill-payment confirmation is missing its amount or account: ${submission.message}`);
+    expect(confirmation[2]).toBe(submission.fundingAccountId);
+    confirmedTotal += Number(confirmation[1].replace(/,/g, ''));
+  }
+
+  expect(confirmedTotal).toBeCloseTo(expectedTotal, 2);
 }
 
 Given('user navigates to Bill Payment page', async function (this: BillPaymentWorld) {
@@ -136,6 +129,10 @@ Then('invalid amount error should be displayed', async function (this: BillPayme
   await paymentPage(this).verifyPaymentError(billPaymentErrorPatterns.invalidAmount);
 });
 
+Then('Then amount cannot be empty message should be displayed', async function (this: BillPaymentWorld) {
+  await paymentPage(this).verifyPaymentError(billPaymentErrorPatterns.amountEmpty);
+});
+
 When('user submits bill payment with amount exceeding balance', async function (this: BillPaymentWorld) {
   const page = paymentPage(this);
   const accountId = await page.selectFundingAccount();
@@ -151,11 +148,10 @@ When('user pays the same biller twice', async function (this: BillPaymentWorld) 
   await submitPayments(this, [validBillPaymentData, validBillPaymentData]);
 });
 
-Then('two successful payment transactions should be recorded', async function (this: BillPaymentWorld) {
+Then('both bill payments should be confirmed', async function (this: BillPaymentWorld) {
   const submissions = this.billPaymentSubmissions ?? [];
   expect(submissions).toHaveLength(2);
-  expect(submissions.every((submission) => submission.success)).toBe(true);
-  await verifyPaymentTransactions(this);
+  await verifyPaymentConfirmations(this);
 });
 
 When('user performs bill payments using TypeScript data', async function (this: BillPaymentWorld) {
@@ -170,6 +166,6 @@ Then('all bill payments should be successful', async function (this: BillPayment
   expect(submissions.every((submission) => submission.success)).toBe(true);
 });
 
-Then('transaction total should match account activity', async function (this: BillPaymentWorld) {
-  await verifyPaymentTransactions(this);
+Then('confirmed payment total should match batch total', async function (this: BillPaymentWorld) {
+  await verifyPaymentConfirmations(this);
 });

@@ -17,7 +17,7 @@ module.exports = {
   web,
   api: {
     ...common,
-    require: ['api/steps/**/*.ts'],
+    require: ['api/steps/**/*.ts', 'api/stepDefinitions/**/*.ts'],
     paths: ['api/features/**/*.feature'],
     format: ['progress']
   },

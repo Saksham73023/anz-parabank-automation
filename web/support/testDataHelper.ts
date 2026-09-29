@@ -73,6 +73,7 @@ export interface ParaBankTestData {
       accountMismatch: string;
       amount: string;
       invalidAmount: string;
+      amountEmpty: string;
       insufficientFunds: string;
     };
   };
