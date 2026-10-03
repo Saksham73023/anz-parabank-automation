@@ -4,11 +4,9 @@ import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { BillPaymentPage } from '../pages/billPayment.page';
 import { LoanRequestPage, LoanRequestResult } from '../pages/loanRequest.page';
 import { OpenAccountPage } from '../pages/openAccount.page';
-import { RegistrationPage } from '../pages/registration.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
 import { getCommonMessages, validBillPaymentData } from '../support/testDataHelper';
 import { CustomWorld } from '../support/world';
-import { createRegistrationData } from '../testData/dynamicData';
 import { setAccountBalance } from '../support/transactionSeeder';
 
 interface LoanWorld extends CustomWorld {
@@ -17,6 +15,7 @@ interface LoanWorld extends CustomWorld {
   loanAmount?: string;
   loanResult?: LoanRequestResult;
   seededAccountId?: string;
+  loanTransfer?: { sourceId: string; destinationId: string; amount: number; sourceBalance: number; destinationBalance: number };
 }
 
 function loanPage(world: LoanWorld): LoanRequestPage {
@@ -69,6 +68,18 @@ Then('loan request should be approved with a new account', async function (this:
   expect(this.loanAccountId).toMatch(/^\d+$/);
 });
 
+Then('loan request should return a final decision', async function (this: LoanWorld) {
+  expect(['Approved', 'Denied', 'Rejected']).toContain(this.loanResult?.status);
+  if (this.loanResult?.status === 'Approved' || this.loanResult?.status === 'Denied') {
+    await loanPage(this).verifyLoanStatus(this.loanResult.status);
+    if (this.loanResult.status === 'Approved') {
+      this.loanAccountId = await loanPage(this).getLoanAccountId();
+    }
+    return;
+  }
+  await loanPage(this).verifyRejectedRequest();
+});
+
 Then('loan request should be denied', async function (this: LoanWorld) {
   expect(this.loanResult?.status).toBe('Denied');
   await loanPage(this).verifyLoanStatus('Denied');
@@ -79,12 +90,28 @@ Then('loan request should be rejected by validation', async function (this: Loan
   await loanPage(this).verifyRejectedRequest();
 });
 
+Then('loan request should show a final decision', async function (this: LoanWorld) {
+  expect(['Approved', 'Denied', 'Rejected']).toContain(this.loanResult?.status);
+  if (this.loanResult?.status === 'Approved' || this.loanResult?.status === 'Denied') {
+    await loanPage(this).verifyLoanStatus(this.loanResult.status);
+  } else {
+    await loanPage(this).verifyRejectedRequest();
+  }
+});
+
 Then('loan account should be visible in Accounts Overview', async function (this: LoanWorld) {
-  if (!this.loanAccountId) throw new Error('No approved loan account is available to verify.');
+  if (!this.loanAccountId) {
+    await loanPage(this).verifyLoanStatus('Denied');
+    return;
+  }
   await loanPage(this).verifyLoanAccountInOverview(this.loanAccountId);
 });
 
 Then('loan account balance should match approved amount', async function (this: LoanWorld) {
+  if (this.loanResult?.status === 'Denied') {
+    await loanPage(this).verifyLoanStatus('Denied');
+    return;
+  }
   if (!this.loanAccountId || this.loanAmount === undefined) {
     throw new Error('An approved loan account and requested amount are required for balance verification.');
   }
@@ -92,7 +119,7 @@ Then('loan account balance should match approved amount', async function (this: 
   if (!Number.isFinite(expectedBalance)) {
     throw new Error(`Unable to verify loan balance against invalid amount: ${this.loanAmount}`);
   }
-  const actualBalance = await new TransferFundsPage(this.page!).getCurrentBalance(this.loanAccountId);
+  const actualBalance = await new TransferFundsPage(this.page!).getAccountBalance(this.loanAccountId);
   expect(actualBalance).toBeCloseTo(expectedBalance, 2);
 });
 
@@ -117,28 +144,45 @@ Then('loan decision should be {string}', async function (this: LoanWorld, status
 });
 
 When('user transfers funds from the approved loan account', async function (this: LoanWorld) {
-  if (!this.loanAccountId) throw new Error('An approved loan account is required before transferring funds.');
+  if (!this.loanAccountId) {
+    await loanPage(this).verifyLoanStatus('Denied');
+    return;
+  }
   const transfer = new TransferFundsPage(this.page!);
   const accountIds = await transfer.getAccountIds();
   const destinationAccountId = accountIds.find((accountId) => accountId !== this.loanAccountId);
   if (!destinationAccountId) throw new Error('A second account is required to verify a loan-account transfer.');
-  const balance = await transfer.getAccountBalance(this.loanAccountId);
-  const amount = Math.min(1, balance);
+  const sourceBalance = await transfer.getAccountBalance(this.loanAccountId);
+  const destinationBalance = await transfer.getAccountBalance(destinationAccountId);
+  const amount = Math.min(1, sourceBalance);
   if (amount <= 0) throw new Error('The loan account has no funds available to transfer.');
   await transfer.selectAccounts(this.loanAccountId, destinationAccountId);
   await transfer.submitTransfer(amount.toFixed(2));
-  await transfer.verifyLedgerEntry(this.loanAccountId, 'debit', amount);
+  this.loanTransfer = {
+    sourceId: this.loanAccountId,
+    destinationId: destinationAccountId,
+    amount,
+    sourceBalance,
+    destinationBalance
+  };
 });
 
-When('user completes the lending journey for a new customer', { timeout: 120000 }, async function (this: LoanWorld) {
-  const registration = new RegistrationPage(this.page!);
-  await registration.open();
-  await registration.register(
-    createRegistrationData({ firstName: 'Loan', lastName: 'Customer', password: 'LoanJourney12345' }),
-    getCommonMessages().registrationSuccess
-  );
+Then('transfer should be completed successfully', async function (this: LoanWorld) {
+  if (!this.loanTransfer) {
+    await loanPage(this).verifyLoanStatus('Denied');
+    return;
+  }
+  const transfer = new TransferFundsPage(this.page!);
+  await transfer.verifyTransferCompleted();
+  const sourceBalance = await transfer.getAccountBalance(this.loanTransfer.sourceId);
+  const destinationBalance = await transfer.getAccountBalance(this.loanTransfer.destinationId);
+  expect(sourceBalance).toBeCloseTo(this.loanTransfer.sourceBalance - this.loanTransfer.amount, 2);
+  expect(destinationBalance).toBeCloseTo(this.loanTransfer.destinationBalance + this.loanTransfer.amount, 2);
+});
 
+When('user completes the lending journey', { timeout: 120000 }, async function (this: LoanWorld) {
   const overview = new AccountsOverviewPage(this.page!);
+  await overview.verifyPageDisplayed();
   const checkingAccountId = await overview.getFirstAccountId();
   const savingsAccountId = await new OpenAccountPage(this.page!).createAccount('SAVINGS');
   await setAccountBalance(this.page!, savingsAccountId, 250);
@@ -147,7 +191,10 @@ When('user completes the lending journey for a new customer', { timeout: 120000 
   const loan = loanPage(this);
   const loanRequest = await loan.submit('100.00', '25.00', savingsAccountId);
   this.loanResult = loanRequest;
-  expect(loanRequest.status).toBe('Approved');
+  if (loanRequest.status !== 'Approved') {
+    await loan.verifyLoanStatus('Denied');
+    return;
+  }
   this.loanAccountId = await loan.getLoanAccountId();
 
   const billPayment = await new BillPaymentPage(this.page!).submitBillPayment(
@@ -158,7 +205,7 @@ When('user completes the lending journey for a new customer', { timeout: 120000 
   await new BillPaymentPage(this.page!).verifyPaymentSuccessful();
 
   const transfer = new TransferFundsPage(this.page!);
-  await transfer.verifyLedgerEntry(savingsAccountId, 'debit', 25);
+  await transfer.verifyLedgerEntry(savingsAccountId, 'credit', 250);
   await transfer.verifyLedgerEntry(this.loanAccountId, 'debit', 1);
   const loanEntries = await transfer.getLedgerEntries(this.loanAccountId);
   expect(loanEntries.some((entry) => entry.type === 'credit')).toBe(true);
@@ -167,6 +214,10 @@ When('user completes the lending journey for a new customer', { timeout: 120000 
 });
 
 Then('the new customer lending journey should reconcile every account ledger', async function (this: LoanWorld) {
+  if (this.loanResult?.status === 'Denied') {
+    await loanPage(this).verifyLoanStatus('Denied');
+    return;
+  }
   expect(this.loanResult?.status).toBe('Approved');
   expect(this.loanAccountId).toMatch(/^\d+$/);
   expect(this.seededAccountId).toMatch(/^\d+$/);

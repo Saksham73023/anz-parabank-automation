@@ -83,14 +83,11 @@ export class TransferFundsPage extends BasePage {
 
   async getAccountBalance(accountId: string): Promise<number> {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
-    if (await accountLink.isVisible()) {
-      const row = accountLink.locator('xpath=ancestor::tr');
-      const value = await row.locator('td').nth(1).textContent();
-      return this.parseAmount(value ?? '');
-    }
-
-    await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
     const row = this.page.locator(`#accountTable tbody tr`).filter({ has: this.page.getByRole('link', { name: accountId, exact: true }) });
+    if (!(await row.isVisible().catch(() => false))) {
+      await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
+    }
+    await row.waitFor({ state: 'visible' });
     return this.parseAmount((await row.locator('td').nth(1).textContent()) ?? '');
   }
 

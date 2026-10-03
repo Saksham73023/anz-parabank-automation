@@ -80,9 +80,11 @@ export class LoanRequestPage extends BasePage {
   }
 
   async verifyRejectedRequest(): Promise<void> {
-    const denied = this.resultPanel.filter({ hasText: /denied/i });
-    const rejected = this.page.locator('.error:visible').filter({ hasText: /\S/ }).first();
-    await expect(denied.or(rejected)).toBeVisible();
+    if (await this.resultPanel.isVisible()) {
+      await expect(this.statusValue).toHaveText(/^(Denied|Rejected)$/i);
+      return;
+    }
+    await expect(this.visibleError).toBeVisible();
   }
 
   async getLoanAccountId(): Promise<string> {
