@@ -1,11 +1,29 @@
-import { After, Before } from '@cucumber/cucumber';
+import { After, Before, setDefaultTimeout, Status } from '@cucumber/cucumber';
 import type { World } from '@cucumber/cucumber';
-import { closeMobileSession, createMobileSession, setMobileSession } from './pages/mobileHelper';
+import { closeMobileSession, createMobileSession, mobileSessionFor, setMobileSession } from './pages/mobileHelper';
 
-Before({ tags: '@mobile' }, async function (this: World) {
+const browserScenarios = '@crossbrowser or @accessibility or @mockpayment';
+const allDay9Scenarios = `${browserScenarios} or @mobile`;
+
+setDefaultTimeout(Number(process.env.CUCUMBER_TIMEOUT ?? 60000));
+
+Before({ tags: browserScenarios }, async function (this: World) {
   setMobileSession(this, await createMobileSession());
 });
 
-After({ tags: '@mobile' }, async function (this: World) {
-  await closeMobileSession(this);
+Before({ tags: '@mobile' }, async function (this: World) {
+  setMobileSession(this, await createMobileSession(true));
+});
+
+After({ tags: allDay9Scenarios }, async function (this: World, scenario) {
+  try {
+    if (scenario.result?.status === Status.FAILED) {
+      const session = mobileSessionFor(this);
+      if (!session.page.isClosed()) {
+        await this.attach(await session.page.screenshot({ fullPage: true }), 'image/png');
+      }
+    }
+  } finally {
+    await closeMobileSession(this);
+  }
 });

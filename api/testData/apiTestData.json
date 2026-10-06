@@ -1,8 +1,20 @@
-{
-  "accountId": "",
+﻿{
+  "customerId": "12212",
+  "accountId": "12345",
   "transfer": {
-    "sourceAccountId": "",
-    "destinationAccountId": "",
-    "amount": 1
+    "sourceAccountId": "12345",
+    "destinationAccountId": "12346",
+    "amount": 25
+  },
+  "billPay": {
+    "accountId": "12345",
+    "payeeName": "Electric Company",
+    "address": "123 Main St",
+    "city": "Houston",
+    "state": "TX",
+    "zipCode": "77002",
+    "phoneNumber": "713-555-0101",
+    "amount": 10,
+    "memo": "API bill payment"
   }
 }

@@ -1,17 +1,21 @@
 import type { APIResponse } from 'playwright';
-import type { ApiClient } from '../apiClient';
+import type { ApiClient } from '../utils/apiClient';
 
 export type AccountType = 'CHECKING' | 'SAVINGS';
 
 export class AccountApi {
   constructor(private readonly client: ApiClient) {}
 
-  getAccount(accountId: string): Promise<APIResponse> {
-    return this.client.get(`/accounts/${this.requiredId(accountId, 'accountId')}`);
+  getAccount(accountId: string, expectedStatus?: number | number[]): Promise<APIResponse> {
+    return this.client.get(`/accounts/${this.requiredId(accountId, 'accountId')}`, { expectedStatus });
   }
 
   getCustomerAccounts(customerId: string): Promise<APIResponse> {
     return this.client.get(`/customers/${this.requiredId(customerId, 'customerId')}/accounts`);
+  }
+
+  getAccountTransactions(accountId: string, expectedStatus?: number | number[]): Promise<APIResponse> {
+    return this.client.get(`/accounts/${this.requiredId(accountId, 'accountId')}/transactions`, { expectedStatus });
   }
 
   createAccount(customerId: string, accountType: AccountType, fromAccountId: string): Promise<APIResponse> {

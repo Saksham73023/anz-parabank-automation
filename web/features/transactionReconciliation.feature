@@ -150,7 +150,7 @@ Feature: Transaction Search and Statement Reconciliation
 
   @smoke @amountSearch
   Scenario: Search transaction using valid amount
-    When user searches transaction by amount "100"
+    When user records a transaction and searches amount "100"
     Then matching transaction details should be displayed
 
   @amountSearch

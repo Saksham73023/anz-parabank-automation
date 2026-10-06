@@ -73,6 +73,15 @@ export class TransferFundsPage extends BasePage {
     return { source, destination };
   }
 
+  async selectKnownAccounts(source: string, destination: string): Promise<void> {
+    await this.open();
+    const selectedSource = await this.fromAccountSelect.selectOption(source);
+    const selectedDestination = await this.toAccountSelect.selectOption(destination);
+    if (!selectedSource.includes(source) || !selectedDestination.includes(destination)) {
+      throw new Error(`Transfer accounts could not be selected. Source: ${source}, destination: ${destination}`);
+    }
+  }
+
   async getSelectedAccounts(): Promise<{ source: string; destination: string }> {
     await this.open();
     return {
@@ -153,6 +162,7 @@ export class TransferFundsPage extends BasePage {
 
   async getLedgerEntries(accountId: string): Promise<LedgerEntry[]> {
     await this.openAccountActivity(accountId);
+    await expect.poll(() => this.activityTable.locator('tbody tr').count()).toBeGreaterThan(0);
     const rows = this.activityTable.locator('tr');
     const entries: LedgerEntry[] = [];
     for (let index = 1; index < await rows.count(); index += 1) {

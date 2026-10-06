@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["integer", "string"] },
+    "customerId": { "type": ["integer", "string"] },
+    "accountType": { "type": "string" },
+    "balance": { "type": ["number", "string", "integer"] },
+    "type": { "type": "string" }
+  },
+  "required": ["id", "customerId"],
+  "additionalProperties": true
+}

@@ -1,30 +1,55 @@
-require('dotenv/config');
+﻿require('dotenv/config');
 
 const common = {
   requireModule: ['ts-node/register'],
+  format: ['progress', 'html:reports/cucumber-report.html'],
   publishQuiet: true
 };
 
-const web = {
-  ...common,
-  require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
-  paths: ['web/features/**/*.feature'],
-  format: ['progress', 'html:reports/cucumber-report.html']
-};
-
 module.exports = {
-  default: web,
-  web,
+  default: {
+    ...common,
+    require: ['api/support/**/*.ts', 'api/steps/**/*.ts'],
+    paths: ['api/features/**/*.feature'],
+    tags: '@api'
+  },
   api: {
     ...common,
-    require: ['api/steps/**/*.ts', 'api/stepDefinitions/**/*.ts'],
+    require: ['api/support/**/*.ts', 'api/steps/**/*.ts'],
     paths: ['api/features/**/*.feature'],
-    format: ['progress']
+    tags: '@api'
+  },
+  web: {
+    ...common,
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/**/*.feature']
   },
   mobile: {
     ...common,
-    require: ['mobile/steps/**/*.ts'],
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
     paths: ['mobile/features/**/*.feature'],
-    format: ['progress']
+    tags: '@mobile',
+    format: ['progress', 'html:reports/mobile-report.html']
+  },
+  crossbrowser: {
+    ...common,
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
+    paths: ['mobile/features/**/*.feature'],
+    tags: '@crossbrowser',
+    format: ['progress', 'html:reports/crossbrowser-report.html']
+  },
+  accessibility: {
+    ...common,
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
+    paths: ['mobile/features/**/*.feature'],
+    tags: '@accessibility',
+    format: ['progress', 'html:reports/accessibility-report.html']
+  },
+  mockpayment: {
+    ...common,
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
+    paths: ['mobile/features/**/*.feature'],
+    tags: '@mockpayment',
+    format: ['progress', 'html:reports/mockpayment-report.html']
   }
 };

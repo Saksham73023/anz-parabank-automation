@@ -1,0 +1,14 @@
+﻿{
+  "firstName": "Auto",
+  "lastName": "Tester",
+  "address": {
+    "street": "123 Test Street",
+    "city": "Austin",
+    "state": "TX",
+    "zipCode": "73301"
+  },
+  "phoneNumber": "512-555-0100",
+  "ssn": "123-45-6789",
+  "username": "autotester01",
+  "password": "Passw0rd!"
+}

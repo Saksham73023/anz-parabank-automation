@@ -41,13 +41,20 @@ async function seedDateSearchTransaction(world: CustomWorld): Promise<void> {
 
 async function recordPaymentsAndSearchAmount(world: CustomWorld, amount: string, count: number): Promise<void> {
   const paymentPage = new BillPaymentPage(world.page!);
-  const payments = Array.from({ length: count }, () => ({ ...validBillPaymentData, amount }));
-  const submissions = await paymentPage.submitBillPayments(payments);
+  const fundingAccountId = await paymentPage.selectFundingAccount();
+  const payments = Array.from({ length: count }, (_, index) => ({
+    ...validBillPaymentData,
+    amount,
+    payeeName: `${validBillPaymentData.payeeName} ${index + 1}`,
+    accountNumber: String(Number(validBillPaymentData.accountNumber) + index),
+    verifyAccount: String(Number(validBillPaymentData.verifyAccount) + index)
+  }));
+  const submissions = await paymentPage.submitBillPayments(payments, fundingAccountId);
   const failedPayment = submissions.find((submission) => !submission.success);
   if (failedPayment) throw new Error(`Unable to seed amount-search transaction: ${failedPayment.message}`);
 
   const page = transactionPage(world);
-  await page.selectAccount(submissions[0].fundingAccountId);
+  await page.selectAccount(fundingAccountId);
   await page.searchByAmount(amount);
 }
 

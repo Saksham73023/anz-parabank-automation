@@ -1,4 +1,4 @@
-import type { ApiAuthentication } from '../apiClient';
+import type { ApiAuthentication } from '../utils/apiClient';
 
 export interface ApiConfig {
   baseURL: string;

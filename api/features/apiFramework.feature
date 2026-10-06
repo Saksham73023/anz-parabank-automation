@@ -1,8 +1,18 @@
-@api @apiFrameworkSample
-Feature: Reusable API framework
+@framework @api
+Feature: API Framework Validation
 
-  Scenario: Retrieve and validate a configured account
-    Given API client is configured
-    When I request the configured account using a path parameter
-    Then the API framework response status should be 200
-    And the API framework response should match schema "account.schema.json"
+Scenario: Verify API client initialization
+  When api client is initialized
+  Then api context should be available
+
+Scenario: Verify request logging
+  When user sends an api request
+  Then request details should be logged
+
+Scenario: Verify response logging
+  When user receives response
+  Then response details should be logged
+
+Scenario: Verify cucumber reporting
+  When test execution is completed
+  Then report should be generated successfully

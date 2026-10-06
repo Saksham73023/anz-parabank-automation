@@ -1,5 +1,5 @@
 import type { APIResponse } from 'playwright';
-import type { ApiClient } from '../apiClient';
+import type { ApiClient } from '../utils/apiClient';
 
 export interface TransferRequest {
   sourceAccountId: string;

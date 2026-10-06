@@ -24,8 +24,9 @@ function loanPage(world: LoanWorld): LoanRequestPage {
 
 async function selectMostFundedAccount(world: LoanWorld): Promise<{ accountId: string; balance: number }> {
   const loan = loanPage(world);
-  const accountIds = await loan.getFundingAccountIds();
   const transfer = new TransferFundsPage(world.page!);
+  const transferableAccountIds = new Set(await transfer.getAccountIds());
+  const accountIds = (await loan.getFundingAccountIds()).filter((accountId) => transferableAccountIds.has(accountId));
   let selected: { accountId: string; balance: number } | undefined;
   for (const accountId of accountIds) {
     const balance = await transfer.getAccountBalance(accountId);
@@ -185,11 +186,18 @@ When('user completes the lending journey', { timeout: 120000 }, async function (
   await overview.verifyPageDisplayed();
   const checkingAccountId = await overview.getFirstAccountId();
   const savingsAccountId = await new OpenAccountPage(this.page!).createAccount('SAVINGS');
-  await setAccountBalance(this.page!, savingsAccountId, 250);
+  const transfer = new TransferFundsPage(this.page!);
+  const savingsOpeningBalance = await transfer.getAccountBalance(savingsAccountId);
+  const seededTransfers = await setAccountBalance(this.page!, savingsAccountId, 250);
+  const expectedSavingsCredits = seededTransfers
+    .filter((transfer) => transfer.targetAccountId === savingsAccountId)
+    .reduce((total, transfer) => total + transfer.amount, savingsOpeningBalance);
   this.seededAccountId = savingsAccountId;
 
   const loan = loanPage(this);
-  const loanRequest = await loan.submit('100.00', '25.00', savingsAccountId);
+  const loanAmount = 100;
+  const downPaymentAmount = 25;
+  const loanRequest = await loan.submit(loanAmount.toFixed(2), downPaymentAmount.toFixed(2), savingsAccountId);
   this.loanResult = loanRequest;
   if (loanRequest.status !== 'Approved') {
     await loan.verifyLoanStatus('Denied');
@@ -204,12 +212,16 @@ When('user completes the lending journey', { timeout: 120000 }, async function (
   expect(billPayment.success).toBe(true);
   await new BillPaymentPage(this.page!).verifyPaymentSuccessful();
 
-  const transfer = new TransferFundsPage(this.page!);
-  await transfer.verifyLedgerEntry(savingsAccountId, 'credit', 250);
+  const savingsEntries = await transfer.getLedgerEntries(savingsAccountId);
+  const actualSavingsCredits = savingsEntries
+    .filter((entry) => entry.type === 'credit')
+    .reduce((total, entry) => total + entry.amount, 0);
+  expect(actualSavingsCredits).toBeCloseTo(expectedSavingsCredits, 2);
+  expect(await transfer.getAccountBalance(savingsAccountId)).toBeCloseTo(250 - downPaymentAmount, 2);
   await transfer.verifyLedgerEntry(this.loanAccountId, 'debit', 1);
   const loanEntries = await transfer.getLedgerEntries(this.loanAccountId);
-  expect(loanEntries.some((entry) => entry.type === 'credit')).toBe(true);
   expect(loanEntries.some((entry) => entry.type === 'debit' && Math.abs(entry.amount - 1) < 0.01)).toBe(true);
+  expect(await transfer.getAccountBalance(this.loanAccountId)).toBeCloseTo(loanAmount - 1, 2);
   expect(checkingAccountId).not.toBe(savingsAccountId);
 });
 

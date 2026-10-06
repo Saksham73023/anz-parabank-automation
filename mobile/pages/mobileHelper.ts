@@ -1,6 +1,7 @@
-import { chromium, devices } from 'playwright';
+import { chromium, devices, firefox, webkit } from 'playwright';
 import type { Browser, BrowserContext, Page } from 'playwright';
 import type { World } from '@cucumber/cucumber';
+import { getPlaywrightConfiguration } from '../playwrightConfig';
 
 export interface MobileSession {
   browser: Browser;
@@ -9,14 +10,14 @@ export interface MobileSession {
 }
 
 const sessions = new WeakMap<World, MobileSession>();
-const DEFAULT_BASE_URL = 'https://parabank.parasoft.com/parabank/index.htm';
 
-export async function createMobileSession(): Promise<MobileSession> {
-  const browser = await chromium.launch({ headless: process.env.HEADLESS !== 'false' });
+export async function createMobileSession(mobile = false): Promise<MobileSession> {
+  const configuration = getPlaywrightConfiguration(mobile);
+  const browser = await configuration.browserType.launch(configuration.launchOptions);
   try {
     const context = await browser.newContext({
-      ...devices['Pixel 7'],
-      baseURL: process.env.BASE_URL ?? DEFAULT_BASE_URL
+      ...(configuration.deviceName ? devices[configuration.deviceName] : {}),
+      ...configuration.contextOptions
     });
     const page = await context.newPage();
     page.setDefaultTimeout(Number(process.env.DEFAULT_TIMEOUT ?? 30000));
@@ -42,6 +43,9 @@ export async function closeMobileSession(world: World): Promise<void> {
   const session = sessions.get(world);
   sessions.delete(world);
   if (!session) return;
-  await session.context.close();
-  await session.browser.close();
+  try {
+    await session.context.close();
+  } finally {
+    await session.browser.close();
+  }
 }

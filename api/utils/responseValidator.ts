@@ -1,7 +1,7 @@
 import Ajv from 'ajv';
 import type { AnySchema, ValidateFunction } from 'ajv';
 import type { APIResponse } from 'playwright';
-import { readJsonResponse } from '../utils/apiUtils';
+import { readJsonResponse } from './apiUtils';
 
 const ajv = new Ajv({ allErrors: true });
 const compiledSchemas = new WeakMap<object, ValidateFunction>();

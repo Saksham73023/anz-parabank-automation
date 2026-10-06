@@ -1,6 +1,8 @@
 import { expect } from 'playwright/test';
 import type { Page } from 'playwright';
+import { BillPaymentPage } from '../pages/billPayment.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
+import { validBillPaymentData } from './testDataHelper';
 
 export interface SeededTransfer {
   sourceAccountId: string;
@@ -18,6 +20,14 @@ export async function setAccountBalance(
   }
 
   const transferPage = new TransferFundsPage(page);
+  await transferPage.open();
+  await page.waitForFunction((accountId) => {
+    const selectors = ['#fromAccountId', '#toAccountId'];
+    return selectors.every((selector) => {
+      const select = document.querySelector<HTMLSelectElement>(selector);
+      return Boolean(select && [...select.options].some((option) => option.value === accountId));
+    });
+  }, targetAccountId);
   const accountIds = await transferPage.getAccountIds();
   if (!accountIds.includes(targetAccountId)) {
     throw new Error(`Target account ${targetAccountId} is not available for transaction seeding.`);
@@ -49,7 +59,16 @@ export async function setAccountBalance(
       amount = Math.min(difference, Math.round(source[1] * 100) / 100);
     } else {
       const destination = [...balances.entries()].sort((left, right) => left[1] - right[1])[0];
-      if (!destination) throw new Error(`No destination account can receive excess funds from ${targetAccountId}.`);
+      if (!destination) {
+        const payment = await new BillPaymentPage(page).submitBillPayment({
+          ...validBillPaymentData,
+          amount: Math.abs(difference).toFixed(2)
+        }, targetAccountId);
+        if (!payment.success) {
+          throw new Error(`Unable to reduce excess balance on ${targetAccountId}: ${payment.message}`);
+        }
+        continue;
+      }
       sourceAccountId = targetAccountId;
       destinationAccountId = destination[0];
       amount = Math.abs(difference);

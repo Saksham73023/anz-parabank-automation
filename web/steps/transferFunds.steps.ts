@@ -222,9 +222,25 @@ Given('user captures source account opening balance', async function (this: Cust
 
 When('user performs fund transfers with following amounts', { timeout: 120000 }, async function (this: CustomWorld) {
   this.transferLedgerEntries = 0;
+  const sourceAccountId = this.transferSourceAccountId;
+  const destinationAccountId = this.transferDestinationAccountId;
+  if (!sourceAccountId || !destinationAccountId) {
+    throw new Error('Source and destination accounts must be captured before daily transfers.');
+  }
+  let expectedBalance = this.transferExpectedBalance ?? this.transferOpeningBalance;
+  if (expectedBalance === undefined) {
+    throw new Error('The source account opening balance must be captured before daily transfers.');
+  }
+
   for (const amount of dailyTransferAmounts) {
-    await performTransfer(this, amount);
-    this.transferExpectedBalance = await transferPage(this).getAccountBalance(this.transferSourceAccountId!);
+    const page = transferPage(this);
+    await page.selectKnownAccounts(sourceAccountId, destinationAccountId);
+    const result = await page.submitTransfer(amount);
+    this.transferAmount = Number(amount);
+    expectedBalance -= Number(amount);
+    this.transferExpectedBalance = expectedBalance;
+    this.transferTransactionId = result.transactionId;
+    this.transferSuccessful = true;
     this.transferLedgerEntries += 1;
   }
 });
@@ -259,4 +275,3 @@ Then('total ledger entries should be {int}', async function (this: CustomWorld, 
 });
 
 void transferAmounts;
-

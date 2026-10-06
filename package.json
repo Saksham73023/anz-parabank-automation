@@ -9,10 +9,17 @@
     "test:web": "cucumber-js -p web",
     "test:api": "cucumber-js -p api",
     "test:mobile": "cucumber-js -p mobile",
+    "test:crossbrowser": "npm run test:crossbrowser:chromium && npm run test:crossbrowser:firefox",
+    "test:crossbrowser:chromium": "cross-env BROWSER=chromium cucumber-js -p crossbrowser",
+    "test:crossbrowser:firefox": "cross-env BROWSER=firefox cucumber-js -p crossbrowser",
+    "test:mobile:day9": "cross-env \"MOBILE_DEVICE=iPhone 12\" cucumber-js -p mobile --tags @day9",
+    "test:accessibility": "cucumber-js -p accessibility",
+    "test:mockpayment": "cucumber-js -p mockpayment",
     "test:smoke": "cucumber-js --tags @smoke",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@cucumber/cucumber": "^12.2.0",
     "@faker-js/faker": "^9.3.0",
     "@types/node": "^22.10.2",

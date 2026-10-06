@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": ["integer", "string"] },
+      "type": { "type": "string" },
+      "amount": { "type": ["number", "string", "integer"] },
+      "description": { "type": "string" }
+    },
+    "required": ["id", "amount"],
+    "additionalProperties": true
+  }
+}
