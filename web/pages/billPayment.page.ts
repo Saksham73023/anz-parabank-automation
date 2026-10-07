@@ -2,6 +2,7 @@ import { expect, Locator, Page } from 'playwright/test';
 import { BasePage } from './basepage';
 import type { BillPaymentData, BillPaymentField } from '../support/testDataHelper';
 
+/** Captures the outcome, confirmation message, amount, and funding account for a bill payment. */
 export interface BillPaymentSubmission {
   success: boolean;
   message: string;
@@ -9,6 +10,7 @@ export interface BillPaymentSubmission {
   fundingAccountId: string;
 }
 
+/** Models bill-payment form entry, funding-account selection, submission, and validation outcomes. */
 export class BillPaymentPage extends BasePage {
   private readonly billPayLink = this.page.getByRole('link', { name: /bill pay/i });
   private readonly pageHeading = this.page.getByRole('heading', { name: /bill payment service/i });
@@ -19,6 +21,7 @@ export class BillPaymentPage extends BasePage {
   private readonly visibleErrors = this.page.locator('.error:visible').filter({ hasText: /\S/ });
   private readonly fieldLocators: Record<BillPaymentField, Locator>;
 
+  /** Initializes payee form, funding-account selector, and result/error locators. */
   constructor(page: Page) {
     super(page);
     this.fieldLocators = {
@@ -34,6 +37,7 @@ export class BillPaymentPage extends BasePage {
     };
   }
 
+  /** Opens the Bill Pay screen and verifies its form is ready for interaction. */
   async open(): Promise<void> {
     if (!(await this.pageHeading.isVisible())) {
       await this.billPayLink.click();
@@ -42,6 +46,7 @@ export class BillPaymentPage extends BasePage {
     await expect(this.fieldLocators.payeeName).toBeVisible();
   }
 
+  /** Selects the requested available funding account or the current/first available account. */
   async selectFundingAccount(accountId?: string): Promise<string> {
     await this.open();
     const accountIds = await this.fundingAccount.locator('option').evaluateAll((options) =>
@@ -61,6 +66,12 @@ export class BillPaymentPage extends BasePage {
     return selectedAccountId;
   }
 
+  /**
+   * Fills and submits a bill payment, then returns either its confirmation or validation message.
+   * @param data Payee and payment fields; omitted values are left unchanged.
+   * @param accountId Optional funding account to select.
+   * @returns Submission outcome including displayed message and selected account.
+   */
   async submitBillPayment(data: Partial<BillPaymentData>, accountId?: string): Promise<BillPaymentSubmission> {
     await this.open();
     await this.fillForm(data);
@@ -85,6 +96,7 @@ export class BillPaymentPage extends BasePage {
     };
   }
 
+  /** Submits a sequence of payments and returns each individual UI result. */
   async submitBillPayments(
     payments: readonly Partial<BillPaymentData>[],
     accountId?: string
@@ -96,11 +108,13 @@ export class BillPaymentPage extends BasePage {
     return submissions;
   }
 
+  /** Asserts that the page displays ParaBank's successful bill-payment confirmation. */
   async verifyPaymentSuccessful(): Promise<void> {
     await expect(this.resultHeading).toContainText(/bill payment complete/i);
     await expect(this.resultPanel).toContainText(/successful/i);
   }
 
+  /** Verifies a required-field message associated with the specified form field. */
   async verifyRequiredField(field: BillPaymentField): Promise<void> {
     const fieldError = this.fieldLocators[field]
       .locator('xpath=ancestor::tr')
@@ -109,11 +123,13 @@ export class BillPaymentPage extends BasePage {
     await this.verifyError(fieldError, /required|cannot be empty|must be provided/i);
   }
 
+  /** Verifies that a visible payment validation message matches the expected pattern. */
   async verifyPaymentError(expectedMessage: RegExp): Promise<void> {
     const matchingError = this.page.locator('.error:visible').filter({ hasText: expectedMessage }).first();
     await this.verifyError(matchingError, expectedMessage);
   }
 
+  /** Fills supplied payee fields while leaving unspecified values untouched. */
   private async fillForm(data: Partial<BillPaymentData>): Promise<void> {
     for (const [field, locator] of Object.entries(this.fieldLocators) as Array<[BillPaymentField, Locator]>) {
       const value = data[field];
@@ -126,10 +142,12 @@ export class BillPaymentPage extends BasePage {
     }
   }
 
+  /** Converts the amount to text and fills the amount control. */
   private async setAmount(amount: string | number): Promise<void> {
     await this.fill(this.fieldLocators.amount, String(amount));
   }
 
+  /** Asserts a validation locator is visible and contains the expected message. */
   private async verifyError(locator: Locator, expectedMessage: RegExp): Promise<void> {
     await expect(locator).toBeVisible();
     await expect(locator).toContainText(expectedMessage);

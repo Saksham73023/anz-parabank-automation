@@ -1,6 +1,7 @@
 import { Page } from 'playwright';
 import { BasePage } from './basepage';
 
+/** Customer identity and credential fields submitted through the registration form. */
 export interface RegistrationData {
 	firstName: string;
 	lastName: string;
@@ -14,6 +15,7 @@ export interface RegistrationData {
 	password: string;
 }
 
+/** Models customer registration, form validation, and the post-registration outcome. */
 export class RegistrationPage extends BasePage {
 	// ParaBank exposes stable name attributes for every registration field.
 	private readonly registerLink = this.page.getByRole('link', { name: 'Register' });
@@ -31,10 +33,12 @@ export class RegistrationPage extends BasePage {
 	private readonly registerButton = this.page.locator('input[value="Register"]');
 	private readonly registrationError = this.page.locator('.error:visible').first();
 
+	/** Initializes registration form controls on the active page. */
 	constructor(page: Page) {
 		super(page);
 	}
 
+	/** Opens registration, handles an existing session, and waits for security verification or the form. */
 	async open(): Promise<void> {
 		await this.navigate(process.env.BASE_URL ?? 'https://parabank.parasoft.com/parabank/index.htm');
 		const logoutLink = this.page.getByRole('link', { name: 'Log Out' });
@@ -57,6 +61,11 @@ export class RegistrationPage extends BasePage {
 		await this.waitForElement(this.usernameInput);
 	}
 
+	/**
+	 * Fills and submits registration data, then resolves success or visible validation failure.
+	 * @param data Customer details and credentials to submit.
+	 * @param expectedSuccessMessage Confirmation text required for successful registration.
+	 */
 	async register(data: RegistrationData, expectedSuccessMessage: string): Promise<void> {
 		await this.fillRegistrationForm(data);
 		await this.submit();
@@ -72,6 +81,7 @@ export class RegistrationPage extends BasePage {
 		}
 	}
 
+	/** Populates all registration fields, optionally using a separate confirmation password. */
 	async fillRegistrationForm(data: RegistrationData, confirmationPassword = data.password): Promise<void> {
 		await this.fill(this.firstNameInput, data.firstName);
 		await this.fill(this.lastNameInput, data.lastName);
@@ -86,10 +96,12 @@ export class RegistrationPage extends BasePage {
 		await this.fill(this.confirmPasswordInput, confirmationPassword);
 	}
 
+	/** Submits the registration form. */
 	async submit(): Promise<void> {
 		await this.click(this.registerButton);
 	}
 
+	/** Reports whether the expected registration confirmation is currently visible. */
 	async isRegistrationSuccessful(expectedSuccessMessage: string): Promise<boolean> {
 		return this.isVisible(this.page.getByText(expectedSuccessMessage));
 	}

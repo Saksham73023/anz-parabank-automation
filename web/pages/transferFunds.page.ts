@@ -2,18 +2,21 @@ import { expect, Locator, Page } from 'playwright/test';
 import { getCommonMessages } from '../support/testDataHelper';
 import { BasePage } from './basepage';
 
+/** Transfer confirmation details returned after submitting the funds-transfer form. */
 export interface TransferResult {
   amount: number;
   transactionId?: string;
   confirmationText: string;
 }
 
+/** Normalized account ledger row classified as a debit, credit, or unknown entry. */
 export interface LedgerEntry {
   amount: number;
   type: 'debit' | 'credit' | 'unknown';
   description: string;
 }
 
+/** Models account selection, funds transfer, confirmation, balance checks, and ledger verification. */
 export class TransferFundsPage extends BasePage {
   private readonly transferLink = this.page.getByRole('link', { name: 'Transfer Funds', exact: true });
   private readonly transferHeading = this.page.getByRole('heading', { name: 'Transfer Funds', exact: true });
@@ -27,10 +30,12 @@ export class TransferFundsPage extends BasePage {
   private readonly transactionLink = this.page.locator('#showResult a').first();
   private readonly activityTable = this.page.locator('#transactionTable');
 
+  /** Initializes transfer form, confirmation, validation, and transaction-history locators. */
   constructor(page: Page) {
     super(page);
   }
 
+  /** Opens Transfer Funds and waits for account selection controls. */
   async open(): Promise<void> {
     if (!(await this.transferHeading.isVisible())) {
       await this.transferLink.click();
@@ -39,6 +44,7 @@ export class TransferFundsPage extends BasePage {
     await this.fromAccountSelect.waitFor({ state: 'visible' });
   }
 
+  /** Reads distinct available account IDs from both transfer selectors. */
   async getAccountIds(): Promise<string[]> {
     await this.open();
     await this.page.waitForFunction(() =>
@@ -55,6 +61,7 @@ export class TransferFundsPage extends BasePage {
     return [...new Set(accountIds.flat())];
   }
 
+  /** Selects two available accounts, defaulting to the first distinct pair. */
   async selectAccounts(sourceAccountId?: string, destinationAccountId?: string): Promise<{ source: string; destination: string }> {
     await this.open();
     const accountIds = await this.getAccountIds();
@@ -73,6 +80,7 @@ export class TransferFundsPage extends BasePage {
     return { source, destination };
   }
 
+  /** Selects explicitly supplied source and destination accounts and verifies selection. */
   async selectKnownAccounts(source: string, destination: string): Promise<void> {
     await this.open();
     const selectedSource = await this.fromAccountSelect.selectOption(source);
@@ -82,6 +90,7 @@ export class TransferFundsPage extends BasePage {
     }
   }
 
+  /** Returns the currently selected source and destination account identifiers. */
   async getSelectedAccounts(): Promise<{ source: string; destination: string }> {
     await this.open();
     return {
@@ -90,6 +99,7 @@ export class TransferFundsPage extends BasePage {
     };
   }
 
+  /** Navigates to overview if necessary and parses the requested account's displayed balance. */
   async getAccountBalance(accountId: string): Promise<number> {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
     const row = this.page.locator(`#accountTable tbody tr`).filter({ has: this.page.getByRole('link', { name: accountId, exact: true }) });
@@ -100,11 +110,18 @@ export class TransferFundsPage extends BasePage {
     return this.parseAmount((await row.locator('td').nth(1).textContent()) ?? '');
   }
 
+  /** Returns the balance of the currently selected transfer source. */
   async getAvailableBalance(): Promise<number> {
     const { source } = await this.getSelectedAccounts();
     return this.getAccountBalance(source);
   }
 
+  /**
+   * Submits a transfer and returns its displayed confirmation and optional transaction ID.
+   * @param amount Amount entered into the transfer form.
+   * @returns Parsed amount, transaction ID when available, and confirmation text.
+   * @throws Error when the UI displays a transfer validation error.
+   */
   async submitTransfer(amount: string | number): Promise<TransferResult> {
     await this.open();
     await this.fill(this.amountInput, String(amount));
@@ -125,17 +142,20 @@ export class TransferFundsPage extends BasePage {
     return { amount: this.parseAmount(String(amount)), transactionId, confirmationText };
   }
 
+  /** Submits a supplied amount without requiring a successful transfer confirmation. */
   async submitInvalidTransfer(amount: string): Promise<void> {
     await this.open();
     await this.fill(this.amountInput, amount);
     await this.click(this.transferButton);
   }
 
+  /** Verifies the transfer-completed heading and result panel. */
   async verifyTransferCompleted(): Promise<void> {
     await expect(this.confirmationHeading).toBeVisible();
     await expect(this.confirmationPanel).toContainText('Transfer');
   }
 
+  /** Verifies transfer completion and, when present, the transaction link. */
   async verifyTransactionDetails(): Promise<void> {
     await this.verifyTransferCompleted();
     if (await this.transactionLink.count() > 0) {
@@ -143,6 +163,7 @@ export class TransferFundsPage extends BasePage {
     }
   }
 
+  /** Confirms transfer validation is visible or that no success confirmation was shown. */
   async verifyValidationError(): Promise<void> {
     if (await this.validationError.isVisible()) {
       return;
@@ -151,6 +172,7 @@ export class TransferFundsPage extends BasePage {
     await expect(this.confirmationHeading).not.toBeVisible();
   }
 
+  /** Opens the selected account detail page to inspect its transaction ledger. */
   async openAccountActivity(accountId: string): Promise<void> {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
     if (!(await accountLink.isVisible())) {
@@ -160,6 +182,7 @@ export class TransferFundsPage extends BasePage {
     await this.page.getByRole('heading', { name: 'Account Details', exact: true }).waitFor({ state: 'visible' });
   }
 
+  /** Parses the account activity table into debit/credit ledger records. */
   async getLedgerEntries(accountId: string): Promise<LedgerEntry[]> {
     await this.openAccountActivity(accountId);
     await expect.poll(() => this.activityTable.locator('tbody tr').count()).toBeGreaterThan(0);
@@ -184,16 +207,19 @@ export class TransferFundsPage extends BasePage {
     return entries;
   }
 
+  /** Asserts that account activity includes a matching debit or credit entry. */
   async verifyLedgerEntry(accountId: string, type: 'debit' | 'credit', amount?: number): Promise<void> {
     const entries = await this.getLedgerEntries(accountId);
     const matchingEntry = entries.find((entry) => entry.type === type && (amount === undefined || Math.abs(entry.amount - amount) < 0.01));
     expect(matchingEntry, `Expected ${type} ledger entry for ${amount ?? 'any amount'} on account ${accountId}`).toBeDefined();
   }
 
+  /** Returns the account's current displayed balance. */
   async getCurrentBalance(accountId: string): Promise<number> {
     return this.getAccountBalance(accountId);
   }
 
+  /** Removes currency symbols and parses a displayed monetary amount. */
   private parseAmount(value: string): number {
     const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ''));
     if (Number.isNaN(parsed)) throw new Error(`Unable to parse monetary value: ${value}`);

@@ -9,6 +9,7 @@ import { getCommonMessages, validBillPaymentData } from '../support/testDataHelp
 import { CustomWorld } from '../support/world';
 import { setAccountBalance } from '../support/transactionSeeder';
 
+/** Scenario state shared by loan decision, funding, and ledger-reconciliation steps. */
 interface LoanWorld extends CustomWorld {
   loanFundingAccountId?: string;
   loanAccountId?: string;
@@ -18,10 +19,12 @@ interface LoanWorld extends CustomWorld {
   loanTransfer?: { sourceId: string; destinationId: string; amount: number; sourceBalance: number; destinationBalance: number };
 }
 
+/** Creates a loan page object bound to the scenario's browser page. */
 function loanPage(world: LoanWorld): LoanRequestPage {
   return new LoanRequestPage(world.page!);
 }
 
+/** Selects the highest-balance account eligible for both funding and supported transfers. */
 async function selectMostFundedAccount(world: LoanWorld): Promise<{ accountId: string; balance: number }> {
   const loan = loanPage(world);
   const transfer = new TransferFundsPage(world.page!);
@@ -39,6 +42,7 @@ async function selectMostFundedAccount(world: LoanWorld): Promise<{ accountId: s
   return selected;
 }
 
+/** Prepares funding, optionally seeds the needed balance, and records the loan decision. */
 async function submitLoan(world: LoanWorld, amount: string, downPayment: string): Promise<void> {
   const funding = await selectMostFundedAccount(world);
   world.loanAmount = amount;
@@ -50,24 +54,46 @@ async function submitLoan(world: LoanWorld, amount: string, downPayment: string)
   world.loanAccountId = world.loanResult.accountId;
 }
 
+/**
+ * Prepares scenario state and the browser UI for the Gherkin step "user is on the loan request page" using the Web page objects.
+ */
+
 Given('user is on the loan request page', async function (this: LoanWorld) {
   await loanPage(this).open();
 });
 
+/**
+ * Performs the requested browser interaction for the Gherkin step "user applies for a loan of {string} with down payment {string}" using the Web page objects.
+ * @param amount Monetary value captured from the Gherkin step.
+ * @param downPayment Value captured for downPayment from the Gherkin step.
+ */
+
 When('user applies for a loan of {string} with down payment {string}', async function (this: LoanWorld, amount: string, downPayment: string) {
   await submitLoan(this, amount, downPayment);
 });
+
+/**
+ * Performs the requested browser interaction for the Gherkin step "user applies for a loan with a down payment above available funds" using the Web page objects.
+ */
 
 When('user applies for a loan with a down payment above available funds', async function (this: LoanWorld) {
   const funding = await selectMostFundedAccount(this);
   this.loanResult = await loanPage(this).submit('100.00', (funding.balance + 1).toFixed(2), funding.accountId);
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "loan request should be approved with a new account" using the Web page objects.
+ */
+
 Then('loan request should be approved with a new account', async function (this: LoanWorld) {
   expect(this.loanResult?.status).toBe('Approved');
   this.loanAccountId = await loanPage(this).getLoanAccountId();
   expect(this.loanAccountId).toMatch(/^\d+$/);
 });
+
+/**
+ * Verifies the expected application result for the Gherkin step "loan request should return a final decision" using the Web page objects.
+ */
 
 Then('loan request should return a final decision', async function (this: LoanWorld) {
   expect(['Approved', 'Denied', 'Rejected']).toContain(this.loanResult?.status);
@@ -81,15 +107,27 @@ Then('loan request should return a final decision', async function (this: LoanWo
   await loanPage(this).verifyRejectedRequest();
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "loan request should be denied" using the Web page objects.
+ */
+
 Then('loan request should be denied', async function (this: LoanWorld) {
   expect(this.loanResult?.status).toBe('Denied');
   await loanPage(this).verifyLoanStatus('Denied');
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "loan request should be rejected by validation" using the Web page objects.
+ */
+
 Then('loan request should be rejected by validation', async function (this: LoanWorld) {
   expect(['Denied', 'Rejected']).toContain(this.loanResult?.status);
   await loanPage(this).verifyRejectedRequest();
 });
+
+/**
+ * Verifies the expected application result for the Gherkin step "loan request should show a final decision" using the Web page objects.
+ */
 
 Then('loan request should show a final decision', async function (this: LoanWorld) {
   expect(['Approved', 'Denied', 'Rejected']).toContain(this.loanResult?.status);
@@ -100,6 +138,10 @@ Then('loan request should show a final decision', async function (this: LoanWorl
   }
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "loan account should be visible in Accounts Overview" using the Web page objects.
+ */
+
 Then('loan account should be visible in Accounts Overview', async function (this: LoanWorld) {
   if (!this.loanAccountId) {
     await loanPage(this).verifyLoanStatus('Denied');
@@ -107,6 +149,10 @@ Then('loan account should be visible in Accounts Overview', async function (this
   }
   await loanPage(this).verifyLoanAccountInOverview(this.loanAccountId);
 });
+
+/**
+ * Verifies the expected application result for the Gherkin step "loan account balance should match approved amount" using the Web page objects.
+ */
 
 Then('loan account balance should match approved amount', async function (this: LoanWorld) {
   if (this.loanResult?.status === 'Denied') {
@@ -124,6 +170,13 @@ Then('loan account balance should match approved amount', async function (this: 
   expect(actualBalance).toBeCloseTo(expectedBalance, 2);
 });
 
+/**
+ * Performs the requested browser interaction for the Gherkin step "user applies for the loan using matrix amount {string}, down payment {string}, and balance {string}" using the Web page objects.
+ * @param amount Monetary value captured from the Gherkin step.
+ * @param downPayment Value captured for downPayment from the Gherkin step.
+ * @param balance Balance value captured from the Gherkin step.
+ */
+
 When('user applies for the loan using matrix amount {string}, down payment {string}, and balance {string}', async function (
   this: LoanWorld,
   amount: string,
@@ -137,12 +190,21 @@ When('user applies for the loan using matrix amount {string}, down payment {stri
   this.loanAccountId = this.loanResult.accountId;
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "loan decision should be {string}" using the Web page objects.
+ * @param status Expected application status captured from the Gherkin step.
+ */
+
 Then('loan decision should be {string}', async function (this: LoanWorld, status: string) {
   expect(this.loanResult?.status).toBe(status);
   if (status === 'Approved' || status === 'Denied') {
     await loanPage(this).verifyLoanStatus(status);
   }
 });
+
+/**
+ * Performs the requested browser interaction for the Gherkin step "user transfers funds from the approved loan account" using the Web page objects.
+ */
 
 When('user transfers funds from the approved loan account', async function (this: LoanWorld) {
   if (!this.loanAccountId) {
@@ -168,6 +230,10 @@ When('user transfers funds from the approved loan account', async function (this
   };
 });
 
+/**
+ * Verifies the expected application result for the Gherkin step "transfer should be completed successfully" using the Web page objects.
+ */
+
 Then('transfer should be completed successfully', async function (this: LoanWorld) {
   if (!this.loanTransfer) {
     await loanPage(this).verifyLoanStatus('Denied');
@@ -180,6 +246,10 @@ Then('transfer should be completed successfully', async function (this: LoanWorl
   expect(sourceBalance).toBeCloseTo(this.loanTransfer.sourceBalance - this.loanTransfer.amount, 2);
   expect(destinationBalance).toBeCloseTo(this.loanTransfer.destinationBalance + this.loanTransfer.amount, 2);
 });
+
+/**
+ * Performs the requested browser interaction for the Gherkin step "user completes the lending journey" using the Web page objects.
+ */
 
 When('user completes the lending journey', { timeout: 120000 }, async function (this: LoanWorld) {
   const overview = new AccountsOverviewPage(this.page!);
@@ -224,6 +294,10 @@ When('user completes the lending journey', { timeout: 120000 }, async function (
   expect(await transfer.getAccountBalance(this.loanAccountId)).toBeCloseTo(loanAmount - 1, 2);
   expect(checkingAccountId).not.toBe(savingsAccountId);
 });
+
+/**
+ * Verifies the expected application result for the Gherkin step "the new customer lending journey should reconcile every account ledger" using the Web page objects.
+ */
 
 Then('the new customer lending journey should reconcile every account ledger', async function (this: LoanWorld) {
   if (this.loanResult?.status === 'Denied') {

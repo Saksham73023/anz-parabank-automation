@@ -2,6 +2,7 @@
 
 const common = {
   requireModule: ['ts-node/register'],
+  // Reuses the shared progress and HTML reporting configuration for all Cucumber profiles.
   format: ['progress', 'html:reports/cucumber-report.html'],
   publishQuiet: true
 };
@@ -21,6 +22,7 @@ module.exports = {
   },
   web: {
     ...common,
+    // Loads only Web hooks, page workflows, and feature files; API/mobile profiles remain isolated.
     require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
     paths: ['web/features/**/*.feature']
   },

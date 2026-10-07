@@ -2,6 +2,7 @@ import { expect } from 'playwright/test';
 import type { Locator, Page } from 'playwright';
 import { BasePage } from './basepage';
 
+/** Normalized transaction values parsed from the ParaBank search-results table. */
 export interface DisplayedTransaction {
   id?: number;
   date: string;
@@ -9,6 +10,7 @@ export interface DisplayedTransaction {
   amount: number;
 }
 
+/** Models transaction lookup by ID, date, date range, and amount, including results and validation. */
 export class TransactionSearchPage extends BasePage {
   private readonly findTransactionsLink = this.page.getByRole('link', { name: 'Find Transactions', exact: true });
   private readonly heading = this.page.getByRole('heading', { name: 'Find Transactions', exact: true });
@@ -26,10 +28,12 @@ export class TransactionSearchPage extends BasePage {
   private readonly resultRows = this.page.locator('#transactionTable tbody tr');
   private readonly validationMessages = this.page.locator('.error:visible');
 
+  /** Initializes transaction-search controls and result locators. */
   constructor(page: Page) {
     super(page);
   }
 
+  /** Opens Find Transactions and waits until account options are populated. */
   async open(): Promise<void> {
     if (!(await this.heading.isVisible())) {
       await this.findTransactionsLink.click();
@@ -42,23 +46,27 @@ export class TransactionSearchPage extends BasePage {
     });
   }
 
+  /** Searches the selected account's history using a transaction identifier. */
   async searchById(transactionId: string): Promise<void> {
     await this.open();
     await this.fill(this.transactionIdInput, transactionId);
     await this.submitSearch(this.findByIdButton);
   }
 
+  /** Selects the account whose history will be searched. */
   async selectAccount(accountId: string): Promise<void> {
     await this.open();
     await this.accountSelect.selectOption(accountId);
   }
 
+  /** Submits a transaction search for one date. */
   async searchByDate(date: string): Promise<void> {
     await this.open();
     await this.fill(this.transactionDateInput, date);
     await this.submitSearch(this.findByDateButton);
   }
 
+  /** Submits a transaction search between inclusive start and end date inputs. */
   async searchByDateRange(fromDate: string, toDate: string): Promise<void> {
     await this.open();
     await this.fill(this.fromDateInput, fromDate);
@@ -66,12 +74,18 @@ export class TransactionSearchPage extends BasePage {
     await this.submitSearch(this.findByDateRangeButton);
   }
 
+  /** Submits a transaction search using an amount string. */
   async searchByAmount(amount: string): Promise<void> {
     await this.open();
     await this.fill(this.amountInput, amount);
     await this.submitSearch(this.findByAmountButton);
   }
 
+  /**
+   * Resolves symbolic transaction selectors from displayed history; literal IDs pass through.
+   * @param value Literal ID or VALID_TRANSACTION/LATEST_TRANSACTION/OLDEST_TRANSACTION token.
+   * @returns The transaction ID to use in a subsequent ID search.
+   */
   async resolveTransactionId(value: string): Promise<string> {
     if (!['VALID_TRANSACTION', 'LATEST_TRANSACTION', 'OLDEST_TRANSACTION'].includes(value)) return value;
 
@@ -89,6 +103,7 @@ export class TransactionSearchPage extends BasePage {
     return String(value === 'OLDEST_TRANSACTION' ? transactions[0].id : transactions[transactions.length - 1].id);
   }
 
+  /** Parses visible result rows into normalized transaction records. */
   async getDisplayedTransactions(): Promise<DisplayedTransaction[]> {
     const rowCount = await this.resultRows.count();
     const transactions: DisplayedTransaction[] = [];
@@ -121,21 +136,25 @@ export class TransactionSearchPage extends BasePage {
     return transactions;
   }
 
+  /** Asserts that a non-empty transaction result table is visible. */
   async verifyResultsDisplayed(): Promise<void> {
     await expect(this.resultsTable).toBeVisible();
     await expect.poll(() => this.resultRows.count()).toBeGreaterThan(0);
     expect(await this.getDisplayedTransactions()).not.toHaveLength(0);
   }
 
+  /** Asserts that the displayed transaction results contain no records. */
   async verifyNoResults(): Promise<void> {
     expect(await this.getDisplayedTransactions()).toHaveLength(0);
   }
 
+  /** Asserts that a non-empty visible search validation message is displayed. */
   async verifyValidationMessage(): Promise<void> {
     await expect(this.validationMessages.first()).toBeVisible();
     await expect(this.validationMessages.first()).not.toHaveText('');
   }
 
+  /** Verifies that an invalid search reports validation or returns no results. */
   async verifySearchFailedGracefully(): Promise<void> {
     const errorCount = await this.validationMessages.count();
     if (errorCount > 0) {
@@ -146,11 +165,13 @@ export class TransactionSearchPage extends BasePage {
     await this.verifyNoResults();
   }
 
+  /** Confirms the results table is displayed after processing a search. */
   async verifySearchProcessed(): Promise<void> {
     await expect(this.resultsTable).toBeVisible();
     expect(await this.getDisplayedTransactions()).toBeDefined();
   }
 
+  /** Submits a search and waits for its transaction response unless UI validation blocks it. */
   private async submitSearch(button: Locator): Promise<void> {
     const response = this.page.waitForResponse((candidate) => {
       try {
@@ -167,6 +188,7 @@ export class TransactionSearchPage extends BasePage {
     }
   }
 
+  /** Removes currency formatting and parses the displayed amount as a finite number. */
   private parseAmount(value: string): number {
     const normalized = value.replace(/[^\d.-]/g, '');
     if (!normalized) return 0;
@@ -175,6 +197,7 @@ export class TransactionSearchPage extends BasePage {
     return amount;
   }
 
+  /** Normalizes supported date values to ISO date text for stable chronological sorting. */
   private toIsoDate(value: number | string): string {
     if (typeof value === 'number') return new Date(value).toISOString().slice(0, 10);
     const match = value.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);

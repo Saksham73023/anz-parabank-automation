@@ -4,12 +4,21 @@ import { BillPaymentPage } from '../pages/billPayment.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
 import { validBillPaymentData } from './testDataHelper';
 
+/** Records a transfer performed to prepare a target account balance for a scenario. */
 export interface SeededTransfer {
   sourceAccountId: string;
   targetAccountId: string;
   amount: number;
 }
 
+/**
+ * Uses supported UI transfers and, when needed, bill payment to reach a target account balance.
+ * Validates the target/account availability and confirms the final balance.
+ * @param page Active authenticated browser page.
+ * @param targetAccountId Account whose balance is being prepared.
+ * @param targetBalance Desired non-negative balance.
+ * @returns Transfers performed while arranging the balance.
+ */
 export async function setAccountBalance(
   page: Page,
   targetAccountId: string,
