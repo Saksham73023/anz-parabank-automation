@@ -8,6 +8,7 @@ import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 import { soapRecords } from '../utils/soapResponse';
 
+/** Fetches customer details from REST and SOAP concurrently and stores normalized records. */
 When('customer details are compared over REST and SOAP', async function (this: ApiWorld) {
   const customerId = this.customerId || getApiTestData().customerId;
   const [restResponse, soapResponse] = await Promise.all([
@@ -23,6 +24,7 @@ When('customer details are compared over REST and SOAP', async function (this: A
   };
 });
 
+/** Fetches account details from REST and SOAP concurrently and stores normalized records. */
 When('account details are compared over REST and SOAP', async function (this: ApiWorld) {
   const accountId = this.accountId || getApiTestData().accountId;
   const [restResponse, soapResponse] = await Promise.all([
@@ -38,6 +40,7 @@ When('account details are compared over REST and SOAP', async function (this: Ap
   };
 });
 
+/** Fetches transaction history from REST and SOAP and normalizes supported parity fields. */
 When('transaction history is compared over REST and SOAP', async function (this: ApiWorld) {
   const accountId = this.accountId || getApiTestData().accountId;
   const [restResponse, soapResponse] = await Promise.all([
@@ -56,18 +59,29 @@ When('transaction history is compared over REST and SOAP', async function (this:
   };
 });
 
+/** Asserts that the saved customer responses contain matching normalized data. */
 Then('REST and SOAP customer responses should be functionally equivalent', function (this: ApiWorld) {
   assertEquivalent(this, 'customer');
 });
 
+/** Asserts that the saved account responses contain matching normalized data. */
 Then('REST and SOAP account responses should be functionally equivalent', function (this: ApiWorld) {
   assertEquivalent(this, 'account');
 });
 
+/** Asserts that the saved transaction responses contain matching normalized data. */
 Then('REST and SOAP transaction responses should be functionally equivalent', function (this: ApiWorld) {
   assertEquivalent(this, 'transaction');
 });
 
+/**
+ * Converts a REST object or array to records containing only the selected parity fields.
+ * Rejects malformed records or records missing required comparison fields.
+ * @param value Parsed REST response body.
+ * @param fields Fields to retain for comparison.
+ * @param resourceName Resource label used in validation errors.
+ * @returns Normalized REST records.
+ */
 function restRecords(value: unknown, fields: string[], resourceName: string): Record<string, unknown>[] {
   const candidates = Array.isArray(value) ? value : [value];
   return candidates.map((candidate) => {
@@ -83,6 +97,7 @@ function restRecords(value: unknown, fields: string[], resourceName: string): Re
   });
 }
 
+/** Validates captured REST/SOAP records and compares their canonical representations. */
 function assertEquivalent(world: ApiWorld, operation: string): void {
   const parity = world.soapParity;
   if (!parity || parity.operation !== operation) {
@@ -97,6 +112,7 @@ function assertEquivalent(world: ApiWorld, operation: string): void {
   expect(canonicalRecords(parity.soap)).toEqual(canonicalRecords(parity.rest));
 }
 
+/** Sorts record fields and records to make parity checks independent of response ordering. */
 function canonicalRecords(records: Record<string, unknown>[]): Record<string, string>[] {
   return records.map((record) => Object.fromEntries(
     Object.entries(record)
@@ -105,6 +121,7 @@ function canonicalRecords(records: Record<string, unknown>[]): Record<string, st
   )).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 }
 
+/** Normalizes numeric strings and numbers while trimming other SOAP/REST text values. */
 function canonicalValue(value: unknown): string {
   if (typeof value === 'number') return String(value);
   const text = String(value).trim();

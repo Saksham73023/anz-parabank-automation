@@ -1,6 +1,6 @@
-import AxeBuilder from '@axe-core/playwright';
 import { Given, Then, When, World } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
+import { scanPageAccessibility } from '../utils/axeHelper';
 import { mobileSessionFor } from '../pages/mobileHelper';
 import { MobileLoginPage } from '../pages/loginPage';
 import { MobileTransferFundsPage } from '../pages/transferFundsPage';
@@ -25,32 +25,13 @@ function credentials(): { username: string; password: string } {
 
 async function scanCurrentPage(world: World, pageName: string): Promise<void> {
   const { page } = mobileSessionFor(world);
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  const violations = results.violations.map((violation) => ({
-    id: violation.id,
-    impact: violation.impact,
-    help: violation.help,
-    description: violation.description,
-    helpUrl: violation.helpUrl,
-    nodes: violation.nodes.map((node) => ({
-      target: node.target,
-      failureSummary: node.failureSummary
-    }))
-  }));
+  const report = await scanPageAccessibility(page, pageName);
   const issues = issuesByWorld.get(world) ?? [];
-  issues.push(...violations.map(({ impact, id, help }) => ({ page: pageName, impact, id, help })));
+  issues.push(...report.violations.map(({ impact, id, help }) => ({ page: pageName, impact, id, help })));
   issuesByWorld.set(world, issues);
-  const report = {
-    page: pageName,
-    url: page.url(),
-    violationCount: violations.length,
-    violations
-  };
 
-  console.log(`[a11y] ${pageName}: ${violations.length} violation(s)`);
-  for (const violation of violations) {
+  console.log(`[a11y] ${pageName}: ${report.violationCount} violation(s)`);
+  for (const violation of report.violations) {
     console.log(`[a11y] ${violation.impact ?? 'unknown'} ${violation.id}: ${violation.help}`);
     for (const node of violation.nodes) {
       console.log(`[a11y] target=${node.target.join(', ')} ${node.failureSummary ?? ''}`);

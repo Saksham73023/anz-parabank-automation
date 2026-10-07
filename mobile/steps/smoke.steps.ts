@@ -1,4 +1,4 @@
-import { Given, Then, When, World } from '@cucumber/cucumber';
+import { Given, When, Then, World } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { mobileSessionFor } from '../pages/mobileHelper';
 import { MobileAccountOverviewPage } from '../pages/accountOverviewPage';

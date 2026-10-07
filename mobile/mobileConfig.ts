@@ -2,7 +2,7 @@ import { After, Before, setDefaultTimeout, Status } from '@cucumber/cucumber';
 import type { World } from '@cucumber/cucumber';
 import { closeMobileSession, createMobileSession, mobileSessionFor, setMobileSession } from './pages/mobileHelper';
 
-const browserScenarios = '@crossbrowser or @accessibility or @mockpayment';
+const browserScenarios = '@crossbrowser or @accessibility or @mockpayment or @payid';
 const allDay9Scenarios = `${browserScenarios} or @mobile`;
 
 setDefaultTimeout(Number(process.env.CUCUMBER_TIMEOUT ?? 60000));

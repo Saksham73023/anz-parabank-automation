@@ -5,17 +5,20 @@ import { apiClientFor, getApiTestData } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/** Loads the configured customer ID and clears the invalid-customer test flag. */
 Given('a valid customer exists', function (this: ApiWorld) {
   const { customerId } = getApiTestData();
   this.customerId = customerId || '12212';
   this.invalidCustomerIdRequested = false;
 });
 
+/** Sets an invalid customer ID so the next request exercises error handling. */
 Given('an invalid customer id', function (this: ApiWorld) {
   this.customerId = '999999999';
   this.invalidCustomerIdRequested = true;
 });
 
+/** Fetches customer details and allows the expected invalid-ID status when appropriate. */
 When('user fetches customer details', async function (this: ApiWorld) {
   const customerId = this.customerId || getApiTestData().customerId;
   this.lastResponse = await new CustomerApi(apiClientFor(this)).getCustomer(
@@ -24,11 +27,13 @@ When('user fetches customer details', async function (this: ApiWorld) {
   );
 });
 
+/** Asserts the captured API response status against the feature's expected code. */
 Then('response status should be {int}', function (this: ApiWorld, expectedStatus: number) {
   expect(this.lastResponse, 'No API response was captured for this step.').toBeTruthy();
   expect(this.lastResponse!.status()).toBe(expectedStatus);
 });
 
+/** Parses the customer JSON and verifies the response includes identity and name fields. */
 Then('customer information should be returned', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect(payload).toBeTruthy();

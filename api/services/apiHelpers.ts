@@ -1,7 +1,9 @@
-﻿import { readFileSync } from 'node:fs';
+/** Shared API test-data loading, scenario-client access, and SOAP endpoint resolution helpers. */
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ApiWorld } from '../support/world';
 
+/** Fixture shape for customer/account identifiers and transfer/bill-payment requests. */
 export interface ApiTestData {
   customerId: string;
   accountId: string;
@@ -23,6 +25,11 @@ export interface ApiTestData {
   };
 }
 
+/**
+ * Loads API fixture data and overlays supported environment-variable values.
+ * Validates the configured transfer amount before returning the scenario data.
+ * @returns Resolved customer, account, transfer, and bill-payment test data.
+ */
 export function getApiTestData(): ApiTestData {
   const dataPath = join(__dirname, '..', 'testData', 'apiTestData.json');
   const data = JSON.parse(readFileSync(dataPath, 'utf8').replace(/^\uFEFF/, '')) as ApiTestData;
@@ -54,6 +61,7 @@ export function getApiTestData(): ApiTestData {
   };
 }
 
+/** Returns the API client owned by the current Cucumber scenario. */
 export function apiClientFor(world: ApiWorld) {
   if (!world.apiClient) {
     throw new Error('API client is not initialized for this scenario.');
@@ -61,6 +69,11 @@ export function apiClientFor(world: ApiWorld) {
   return world.apiClient;
 }
 
+/**
+ * Resolves the ParaBank SOAP endpoint from API_SOAP_URL or the configured REST base URL.
+ * Validates explicit URLs and derives the SOAP path only from a recognized service base path.
+ * @returns An absolute HTTP or HTTPS SOAP service URL.
+ */
 export function getSoapEndpoint(): string {
   const configuredEndpoint = process.env.API_SOAP_URL?.trim();
   if (configuredEndpoint) {

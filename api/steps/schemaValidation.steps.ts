@@ -10,6 +10,10 @@ import type { ApiWorld } from '../support/world';
 import { ApiAssertions } from '../utils/apiAssertions';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/**
+ * Reads transaction history, trying the configured account then the customer's accounts.
+ * Saves a successful response or fails when no account exposes history.
+ */
 When('user fetches transaction details', async function (this: ApiWorld) {
   const transactionApi = new TransactionApi(apiClientFor(this));
   const configuredAccountId = this.accountId || getApiTestData().accountId;
@@ -39,6 +43,7 @@ When('user fetches transaction details', async function (this: ApiWorld) {
   throw new Error(`No transaction history was found for customer ${customerId}'s accounts.`);
 });
 
+/** Confirms transaction history is an array of records with IDs and amounts. */
 Then('transaction history should be returned', async function (this: ApiWorld) {
   const transactions = await readJsonResponse<unknown>(this.lastResponse!);
   if (!Array.isArray(transactions)) {
@@ -52,16 +57,19 @@ Then('transaction history should be returned', async function (this: ApiWorld) {
   }
 });
 
+/** Loads the customer schema and validates the captured JSON response. */
 Then('customer response schema should be valid', async function (this: ApiWorld) {
   const schema = JSON.parse(readFileSync(join(__dirname, '..', 'payloads', 'schemas', 'customer.schema.json'), 'utf8').replace(/^\uFEFF/, ''));
   await ApiAssertions.assertSchema(this.lastResponse!, schema);
 });
 
+/** Loads the account schema and validates the captured JSON response. */
 Then('account response schema should be valid', async function (this: ApiWorld) {
   const schema = JSON.parse(readFileSync(join(__dirname, '..', 'payloads', 'schemas', 'account.schema.json'), 'utf8').replace(/^\uFEFF/, ''));
   await ApiAssertions.assertSchema(this.lastResponse!, schema);
 });
 
+/** Loads the transaction schema and validates the captured JSON response. */
 Then('transaction response schema should be valid', async function (this: ApiWorld) {
   const schema = JSON.parse(readFileSync(join(__dirname, '..', 'payloads', 'schemas', 'transaction.schema.json'), 'utf8').replace(/^\uFEFF/, ''));
   await ApiAssertions.assertSchema(this.lastResponse!, schema);

@@ -4,12 +4,15 @@ import { getApiConfig } from '../support/environmentConfig';
 import { AuthenticationManager } from '../services/authenticationManager';
 import { RequestBuilder } from './requestBuilder';
 
+/** HTTP verbs supported by the common API request transport. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+/** Authentication modes that can be applied globally or to an individual request. */
 export type ApiAuthentication =
   | { type: 'none' }
   | { type: 'bearer'; token: string }
   | { type: 'basic'; username: string; password: string };
 
+/** Optional path, query, payload, header, authentication, and response-status settings. */
 export interface ApiRequestOptions {
   params?: Record<string, string | number | boolean>;
   queryParams?: Record<string, string | number | boolean>;
@@ -23,9 +26,16 @@ export interface ApiRequestOptions {
   expectedStatus?: number | number[];
 }
 
+/** Central Playwright API transport for request construction, status checks, and bounded retries. */
 export class ApiClient {
+  /** Keeps the Playwright context private so callers use the controlled client lifecycle. */
   private constructor(private readonly context: APIRequestContext) {}
 
+  /**
+   * Creates a request context from validated environment configuration.
+   * Applies base headers, configured authentication/cookies, timeout, and TLS policy.
+   * @returns A client ready for API and SOAP requests.
+   */
   static async create(): Promise<ApiClient> {
     const config = getApiConfig();
     const headers: Record<string, string> = {
@@ -43,34 +53,49 @@ export class ApiClient {
     return new ApiClient(context);
   }
 
+  /** Sends an API request using the specified HTTP method. */
   request(method: HttpMethod, path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send(method, path, options);
   }
 
+  /** Sends a GET request through the common transport and status validation. */
   get(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('GET', path, options);
   }
 
+  /** Sends a POST request through the common transport and status validation. */
   post(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('POST', path, options);
   }
 
+  /** Sends a PUT request through the common transport and status validation. */
   put(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('PUT', path, options);
   }
 
+  /** Sends a PATCH request through the common transport and status validation. */
   patch(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('PATCH', path, options);
   }
 
+  /** Sends a DELETE request through the common transport and status validation. */
   delete(path: string, options: ApiRequestOptions = {}): Promise<APIResponse> {
     return this.send('DELETE', path, options);
   }
 
+  /** Releases the Playwright request context and its associated resources. */
   async dispose(): Promise<void> {
     await this.context.dispose();
   }
 
+  /**
+   * Builds and sends a request, checks expected statuses, retries transient failures,
+   * and reports a diagnostic error if the response remains unsuccessful.
+   * @param method HTTP method to invoke.
+   * @param path Relative or explicitly rooted request path.
+   * @param options Request parameters, payload, headers, and accepted statuses.
+   * @returns A response matching the configured status expectation.
+   */
   private async send(method: HttpMethod, path: string, options: ApiRequestOptions): Promise<APIResponse> {
     const { expectedStatus } = options;
     const allowedStatuses = expectedStatus === undefined
@@ -129,6 +154,7 @@ export class ApiClient {
   }
 }
 
+/** Resolves a rate-limit wait from Retry-After, a JSON retry_after field, or a fallback. */
 function getRetryDelay(retryAfterHeader: string | undefined, body: string | undefined): number {
   if (retryAfterHeader) {
     const seconds = Number(retryAfterHeader);

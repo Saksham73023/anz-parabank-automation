@@ -6,17 +6,20 @@ import { apiClientFor, getApiTestData } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/** Selects the configured valid account for subsequent account steps. */
 Given('a valid account exists', function (this: ApiWorld) {
   const { accountId } = getApiTestData();
   this.accountId = this.accountId || accountId || '12345';
   this.invalidAccountIdRequested = false;
 });
 
+/** Selects a known-invalid account ID for negative API assertions. */
 Given('an invalid account id', function (this: ApiWorld) {
   this.accountId = '999999999';
   this.invalidAccountIdRequested = true;
 });
 
+/** Establishes a ParaBank web session using configured credentials. */
 Given('user is logged into ParaBank', async function (this: ApiWorld) {
   await AuthenticationManager.login(
     apiClientFor(this),
@@ -25,18 +28,25 @@ Given('user is logged into ParaBank', async function (this: ApiWorld) {
   );
 });
 
+/** Creates a savings account for the scenario's configured customer. */
 When('user creates a new account', async function (this: ApiWorld) {
   await createCustomerAccount(this, 'SAVINGS');
 });
 
+/** Creates a savings account for the scenario's configured customer. */
 When('user creates a savings account', async function (this: ApiWorld) {
   await createCustomerAccount(this, 'SAVINGS');
 });
 
+/** Creates a checking account for the scenario's configured customer. */
 When('user creates a checking account', async function (this: ApiWorld) {
   await createCustomerAccount(this, 'CHECKING');
 });
 
+/**
+ * Fetches the selected account, allowing expected invalid statuses for negative tests.
+ * If the configured valid ID is stale, selects an account from the configured customer.
+ */
 When('user fetches account details', async function (this: ApiWorld) {
   const accountApi = new AccountApi(apiClientFor(this));
   const requestedAccountId = this.accountId || getApiTestData().accountId;
@@ -71,32 +81,38 @@ When('user fetches account details', async function (this: ApiWorld) {
   }
 });
 
+/** Retrieves the configured customer's account list. */
 When("user fetches customer's accounts", async function (this: ApiWorld) {
   this.lastResponse = await new AccountApi(apiClientFor(this)).getCustomerAccounts(this.customerId);
 });
 
+/** Verifies that the account-creation response contains an account identifier. */
 Then('account should be created successfully', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect((payload as { id?: unknown }).id ?? (payload as { accountId?: unknown }).accountId).toBeTruthy();
 });
 
+/** Verifies that the account-details response contains an account identifier. */
 Then('account information should be returned', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect((payload as { id?: unknown }).id ?? (payload as { accountId?: unknown }).accountId).toBeTruthy();
 });
 
+/** Verifies that the account response includes a balance field. */
 Then('account balance should be displayed', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   const balance = (payload as { balance?: unknown }).balance ?? (payload as { availableBalance?: unknown }).availableBalance;
   expect(balance).toBeDefined();
 });
 
+/** Verifies that the returned account type is one of ParaBank's supported categories. */
 Then('account type should be valid', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   const accountType = (payload as { accountType?: string }).accountType ?? (payload as { type?: string }).type;
   expect(['CHECKING', 'SAVINGS', 'LOAN']).toContain(accountType ?? '');
 });
 
+/** Checks content type and validates owner, identifier, type, and balance for each account. */
 Then('customer accounts should be returned with valid details', async function (this: ApiWorld) {
   const contentType = this.lastResponse!.headers()['content-type'] ?? '';
   expect(contentType).toContain('application/json');
@@ -125,6 +141,11 @@ Then('customer accounts should be returned with valid details', async function (
   }
 });
 
+/**
+ * Selects a funding account, creates the requested account, and stores its returned ID.
+ * @param world Current scenario state for response and account tracking.
+ * @param accountType Type of account to create.
+ */
 async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 'SAVINGS'): Promise<void> {
   const accountApi = new AccountApi(apiClientFor(world));
   const customerId = world.customerId || getApiTestData().customerId;
@@ -142,6 +163,13 @@ async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 
   world.accountId = String(createdAccountId);
 }
 
+/**
+ * Chooses the preferred eligible account or the highest-balance checking/savings account.
+ * @param accountApi Service used to retrieve the customer's accounts.
+ * @param customerId Owner whose eligible accounts are considered.
+ * @param preferredAccountId Preferred configured funding account.
+ * @returns The selected funding account ID.
+ */
 async function resolveFundingAccountId(
   accountApi: AccountApi,
   customerId: string,

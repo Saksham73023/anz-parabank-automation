@@ -6,20 +6,24 @@ import { TransferApi } from '../services/transferApi';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/** Selects the configured source account for a transfer scenario. */
 Given('source account exists', function (this: ApiWorld) {
   const { sourceAccountId } = getApiTestData().transfer;
   this.sourceAccountId = sourceAccountId || '12345';
 });
 
+/** Selects the configured destination account for a transfer scenario. */
 Given('destination account exists', function (this: ApiWorld) {
   const { destinationAccountId } = getApiTestData().transfer;
   this.destinationAccountId = destinationAccountId || '12346';
 });
 
+/** Sets a negative amount to drive the invalid-transfer request scenario. */
 Given('transfer amount is invalid', function (this: ApiWorld) {
   this.transferAmount = -10;
 });
 
+/** Resolves account IDs and submits the scenario transfer via TransferApi. */
 When('transfer is completed', async function (this: ApiWorld) {
   await resolveTransferAccounts(this);
   this.lastResponse = await new TransferApi(apiClientFor(this)).transfer({
@@ -29,6 +33,7 @@ When('transfer is completed', async function (this: ApiWorld) {
   });
 });
 
+/** Resolves eligible accounts and submits the configured transfer via TransferApi. */
 When('user transfers amount between accounts', async function (this: ApiWorld) {
   await resolveTransferAccounts(this);
   this.lastResponse = await new TransferApi(apiClientFor(this)).transfer({
@@ -38,6 +43,7 @@ When('user transfers amount between accounts', async function (this: ApiWorld) {
   });
 });
 
+/** Resolves account IDs and sends a transfer through the shared API client. */
 When('user transfers funds', async function (this: ApiWorld) {
   await resolveTransferAccounts(this);
 
@@ -51,6 +57,7 @@ When('user transfers funds', async function (this: ApiWorld) {
   });
 });
 
+/** Resolves eligible accounts and submits the configured transfer via TransferApi. */
 When('user transfers amount', async function (this: ApiWorld) {
   await resolveTransferAccounts(this);
 
@@ -61,11 +68,13 @@ When('user transfers amount', async function (this: ApiWorld) {
   });
 });
 
+/** Confirms the transfer response can be parsed and contains a truthy payload. */
 Then('transfer transaction should be recorded', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect(payload).toBeTruthy();
 });
 
+/** Fetches both post-transfer balances and verifies that the source balance decreased. */
 Then('source account balance should decrease', async function (this: ApiWorld) {
   if (this.sourceBalanceBeforeTransfer === undefined) {
     throw new Error('Source balance was not captured before the transfer.');
@@ -75,6 +84,7 @@ Then('source account balance should decrease', async function (this: ApiWorld) {
   expect(balances.source).toBeLessThan(this.sourceBalanceBeforeTransfer);
 });
 
+/** Verifies the destination balance fetched during the source-balance check increased. */
 Then('destination account balance should increase', async function (this: ApiWorld) {
   if (this.destinationBalanceBeforeTransfer === undefined) {
     throw new Error('Destination balance was not captured before the transfer.');
@@ -85,6 +95,11 @@ Then('destination account balance should increase', async function (this: ApiWor
   expect(this.destinationBalanceAfterTransfer).toBeGreaterThan(this.destinationBalanceBeforeTransfer);
 });
 
+/**
+ * Fetches the customer's account list and resolves fresh balances for both transfer accounts.
+ * @param world Scenario state containing the customer and transfer account IDs.
+ * @returns The current source and destination balances.
+ */
 async function loadBalancesAfterTransfer(world: ApiWorld): Promise<{ source: number; destination: number }> {
   const { customerId } = getApiTestData();
   const expectedCustomerId = world.customerId || customerId;
@@ -118,6 +133,11 @@ async function loadBalancesAfterTransfer(world: ApiWorld): Promise<{ source: num
   return { source, destination };
 }
 
+/**
+ * Selects distinct eligible accounts and captures their pre-transfer balances.
+ * Requires a funded checking/savings source and another account belonging to the customer.
+ * @param world Scenario state to populate with selected accounts and baseline balances.
+ */
 async function resolveTransferAccounts(world: ApiWorld): Promise<void> {
   const { customerId, transfer } = getApiTestData();
   const accountApi = new AccountApi(apiClientFor(world));

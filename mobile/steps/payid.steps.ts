@@ -1,4 +1,4 @@
-import { Given, Then, When, World } from '@cucumber/cucumber';
+import { Given, When, Then, World } from '@cucumber/cucumber';
 import { MockPaymentOutcome, MockPaymentPage } from '../pages/mockPaymentPage';
 import { mobileSessionFor } from '../pages/mobileHelper';
 

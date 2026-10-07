@@ -10,12 +10,13 @@
     "test:api": "cucumber-js -p api",
     "test:mobile": "cucumber-js -p mobile",
     "test:crossbrowser": "npm run test:crossbrowser:chromium && npm run test:crossbrowser:firefox",
-    "test:crossbrowser:chromium": "cross-env BROWSER=chromium cucumber-js -p crossbrowser",
-    "test:crossbrowser:firefox": "cross-env BROWSER=firefox cucumber-js -p crossbrowser",
+    "test:crossbrowser:chromium": "cross-env BROWSER=chromium cucumber-js -p smoke",
+    "test:crossbrowser:firefox": "cross-env BROWSER=firefox cucumber-js -p smoke",
     "test:mobile:day9": "cross-env \"MOBILE_DEVICE=iPhone 12\" cucumber-js -p mobile --tags @day9",
     "test:accessibility": "cucumber-js -p accessibility",
     "test:mockpayment": "cucumber-js -p mockpayment",
-    "test:smoke": "cucumber-js --tags @smoke",
+    "test:payid": "cucumber-js -p payid",
+    "test:smoke": "npm run test:crossbrowser",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

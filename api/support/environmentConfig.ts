@@ -1,5 +1,6 @@
 import type { ApiAuthentication } from '../utils/apiClient';
 
+/** Validated connection and authentication settings for a Playwright API context. */
 export interface ApiConfig {
   baseURL: string;
   timeout: number;
@@ -10,6 +11,12 @@ export interface ApiConfig {
 
 const DEFAULT_BASE_URL = 'https://parabank.parasoft.com/parabank/services/bank';
 
+/**
+ * Resolves API connection settings, authentication, cookies, and transport behavior.
+ * Validates the base URL and timeout before the request context is created.
+ * @param environment Environment-variable map; defaults to the process environment.
+ * @returns Validated API client configuration.
+ */
 export function getApiConfig(environment: NodeJS.ProcessEnv = process.env): ApiConfig {
   const baseURL = environment.API_BASE_URL?.trim() || DEFAULT_BASE_URL;
   let parsedBaseURL: URL;
@@ -36,6 +43,7 @@ export function getApiConfig(environment: NodeJS.ProcessEnv = process.env): ApiC
   };
 }
 
+/** Validates and normalizes the configured none, bearer, or basic-authentication mode. */
 function resolveAuthentication(environment: NodeJS.ProcessEnv): ApiAuthentication {
   const authType = environment.API_AUTH_TYPE?.trim().toLowerCase();
   if (authType && !['none', 'bearer', 'basic'].includes(authType)) {

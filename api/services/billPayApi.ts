@@ -1,6 +1,10 @@
+// Provides bill payment API operations, including request validation,
+// payee information handling, and bill payment submission with
+// account and amount verification before execution.
 import type { APIResponse } from 'playwright';
 import type { ApiClient } from '../utils/apiClient';
 
+/** Account and payee fields required to submit a ParaBank bill-payment action. */
 export interface BillPayRequest {
   accountId: string;
   payeeName: string;
@@ -12,9 +16,16 @@ export interface BillPayRequest {
   amount: number;
 }
 
+/** Sends bill payments using ParaBank's action endpoint with client-side input validation. */
 export class BillPayApi {
+  /** Binds bill-payment operations to the current scenario's API client. */
   constructor(private readonly client: ApiClient) {}
 
+  /**
+   * Submits a bill payment after checking the account ID and amount.
+   * @param request Funding account, payee details, and positive payment amount.
+   * @returns Response for an accepted successful bill-payment status.
+   */
   payBill(request: BillPayRequest): Promise<APIResponse> {
     const accountId = request.accountId.trim();
     const numericAccountId = Number(accountId);

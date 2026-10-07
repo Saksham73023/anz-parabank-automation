@@ -8,6 +8,10 @@ import { TransferApi } from '../services/transferApi';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/**
+ * Captures baseline balance and transaction IDs, validates the seed amount, and deposits funds.
+ * The captured baseline supports end-to-end ledger reconciliation after subsequent operations.
+ */
 When('user seeds account transactions', async function (this: ApiWorld) {
   const accountId = this.accountId || getApiTestData().accountId;
   const accountApi = new AccountApi(apiClientFor(this));
@@ -33,6 +37,10 @@ When('user seeds account transactions', async function (this: ApiWorld) {
   this.e2eResponses.push(this.lastResponse);
 });
 
+/**
+ * Selects a destination account and transfers the configured amount from the seeded account.
+ * Captures both account IDs and the destination's opening balance for later reconciliation.
+ */
 When('user completes a transfer between accounts', async function (this: ApiWorld) {
   const { customerId, transfer, billPay } = getApiTestData();
   const sourceAccountId = this.accountId || getApiTestData().accountId;
@@ -82,6 +90,7 @@ When('user completes a transfer between accounts', async function (this: ApiWorl
   this.e2eResponses.push(this.lastResponse);
 });
 
+/** Submits the configured bill payment and stores its response for end-to-end validation. */
 When('user pays a bill', async function (this: ApiWorld) {
   const { billPay } = getApiTestData();
   this.lastResponse = await new BillPayApi(apiClientFor(this)).payBill({
@@ -97,6 +106,7 @@ When('user pays a bill', async function (this: ApiWorld) {
   this.e2eResponses.push(this.lastResponse);
 });
 
+/** Verifies that account creation, deposit, transfer, and bill payment all returned 2xx statuses. */
 Then('all api responses should be successful', function (this: ApiWorld) {
   expect(this.e2eResponses.length).toBe(4);
   for (const response of this.e2eResponses) {
@@ -105,6 +115,10 @@ Then('all api responses should be successful', function (this: ApiWorld) {
   }
 });
 
+/**
+ * Reconciles final balances and distinct transaction records against captured opening values.
+ * Compares money in integer cents to avoid floating-point rounding discrepancies.
+ */
 Then('account balances and transaction history should reconcile', async function (this: ApiWorld) {
   if (
     this.e2eOpeningBalance === undefined ||
@@ -149,6 +163,7 @@ Then('account balances and transaction history should reconcile', async function
   }
 });
 
+/** Reads a balance field, validates it is finite, and returns it as a number. */
 function getBalance(account: Record<string, unknown>): number {
   const balance = Number(account.balance ?? account.availableBalance);
   if (!Number.isFinite(balance)) {
@@ -157,6 +172,11 @@ function getBalance(account: Record<string, unknown>): number {
   return balance;
 }
 
+/**
+ * Validates transaction-history objects and normalizes their IDs and amounts.
+ * @param value Parsed transaction-history array.
+ * @returns Records with non-empty IDs and finite numeric amounts.
+ */
 function transactionRecords(value: unknown[]): Array<{ id: string; amount: number }> {
   return value.map((item) => {
     if (typeof item !== 'object' || item === null) {
@@ -175,6 +195,7 @@ function transactionRecords(value: unknown[]): Array<{ id: string; amount: numbe
   });
 }
 
+/** Converts a monetary amount to the nearest integer cent for deterministic comparisons. */
 function toCents(amount: number): number {
   return Math.round(amount * 100);
 }

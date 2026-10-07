@@ -1,3 +1,11 @@
+/**
+ * Extracts SOAP record elements and the requested fields from each record.
+ * Throws an explicit error if the document contains a SOAP fault.
+ * @param xml SOAP response body.
+ * @param recordName Repeating record element to extract.
+ * @param fields Child element names to include in each record.
+ * @returns Normalized records containing the requested string fields.
+ */
 export function soapRecords(
   xml: string,
   recordName: string,
@@ -19,6 +27,7 @@ export function soapRecords(
   return records;
 }
 
+/** Extracts and XML-decodes the text of the first matching SOAP element. */
 export function soapText(xml: string, elementName: string): string | undefined {
   const escapedName = elementName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const element = new RegExp(
@@ -29,6 +38,7 @@ export function soapText(xml: string, elementName: string): string | undefined {
   return decodeXml(element.replace(/<\!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim());
 }
 
+/** Returns the inner XML for each matching, optionally namespace-prefixed element. */
 export function soapElements(xml: string, elementName: string): string[] {
   const escapedName = elementName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const expression = new RegExp(
@@ -38,6 +48,7 @@ export function soapElements(xml: string, elementName: string): string[] {
   return [...xml.matchAll(expression)].map((match) => match[2]);
 }
 
+/** Decodes the five predefined XML entities used in SOAP text values. */
 function decodeXml(value: string): string {
   return value
     .replace(/&lt;/g, '<')

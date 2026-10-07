@@ -6,6 +6,7 @@ import { apiClientFor, getApiTestData } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
+/** Chooses a funded customer account and submits the configured bill-payment request. */
 When('user submits bill payment request', async function (this: ApiWorld) {
   const { billPay, customerId } = getApiTestData();
   const accountId = await resolveBillPayAccountId(
@@ -27,6 +28,7 @@ When('user submits bill payment request', async function (this: ApiWorld) {
   });
 });
 
+/** Verifies the bill-payment confirmation's payee, amount, and funding account. */
 Then('payment confirmation should be generated', async function (this: ApiWorld) {
   const payload = await readJsonResponse<{
     payeeName?: unknown;
@@ -40,11 +42,20 @@ Then('payment confirmation should be generated', async function (this: ApiWorld)
   expect(String(payload.accountId)).toBe(this.accountId);
 });
 
+/** Confirms that a payment response payload was captured for balance validation. */
 Then('account balance should be reduced', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect(payload).toBeTruthy();
 });
 
+/**
+ * Selects the preferred account with sufficient balance, or the highest-balance eligible account.
+ * @param accountApi Service used to list customer accounts.
+ * @param customerId Owner whose accounts are evaluated.
+ * @param preferredAccountId Preferred configured account.
+ * @param amount Minimum balance required for the payment.
+ * @returns The selected funding account ID.
+ */
 async function resolveBillPayAccountId(
   accountApi: AccountApi,
   customerId: string,

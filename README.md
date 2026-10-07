@@ -21,6 +21,7 @@ npm run test:mobile
 npm run test:crossbrowser
 npm run test:mobile:day9
 npm run test:accessibility
+npm run test:payid
 npm run test:mockpayment
 npm run test:smoke
 npm run test:headed
@@ -75,13 +76,14 @@ npm run test:accessibility
 npm run test:mockpayment
 ```
 
-Each Cucumber profile writes an HTML report under `reports/`. Accessibility scans attach JSON violation details to the report and print impact, help, and affected selectors to the console; serious and critical violations fail the scan. NPP/PayID outcomes are fully mocked with `page.route()` and do not submit real payments.
+The Day 9 profiles cover 13 Cucumber scenarios (including the existing mobile login and transfer cases); the cross-browser smoke scenario runs on both Chromium and Firefox, for 14 executions total. Each Cucumber profile writes an HTML report under `reports/`; Chromium and Firefox smoke results are kept in separate reports. Accessibility scans attach JSON violation details to the report, append results to `reports/accessibility-results.jsonl`, and print impact, help, and affected selectors to the console; serious and critical violations fail the scan. NPP/PayID outcomes are fully mocked with `page.route()` and do not submit real payments.
 
 ```text
 mobile/
-  features/       Day 9 smoke, accessibility, and mocked payment scenarios
+  features/       Chromium/Firefox smoke, 390x844 mobile, accessibility, and PayID scenarios
   pages/          Login, account, transfer, bill-pay, mock-payment POMs and session helpers
-  steps/          Cucumber steps for smoke flows, axe scans, and mocked outcomes
+  steps/          Shared smoke steps, axe scans, and mocked PayID outcomes
+  utils/          Axe result logging and PayID route-interception mocks
   pages/mobileHelper.ts    Browser, context, and page lifecycle
   mobileConfig.ts          Cucumber hooks and failure screenshot attachments
   playwrightConfig.ts      Environment-based Playwright browser/device options

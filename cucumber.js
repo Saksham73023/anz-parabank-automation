@@ -31,6 +31,13 @@ module.exports = {
     tags: '@mobile',
     format: ['progress', 'html:reports/mobile-report.html']
   },
+  smoke: {
+    ...common,
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
+    paths: ['mobile/features/smoke.feature'],
+    tags: '@smoke',
+    format: ['progress', `html:reports/smoke-${process.env.BROWSER || 'chromium'}-report.html`]
+  },
   crossbrowser: {
     ...common,
     require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
@@ -44,6 +51,13 @@ module.exports = {
     paths: ['mobile/features/**/*.feature'],
     tags: '@accessibility',
     format: ['progress', 'html:reports/accessibility-report.html']
+  },
+  payid: {
+    ...common,
+    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
+    paths: ['mobile/features/payid.feature'],
+    tags: '@payid',
+    format: ['progress', 'html:reports/payid-report.html']
   },
   mockpayment: {
     ...common,

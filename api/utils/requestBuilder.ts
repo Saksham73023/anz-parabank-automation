@@ -1,5 +1,6 @@
 import type { ApiRequestOptions } from './apiClient';
 
+/** Resolved request path, Playwright options, and headers produced by RequestBuilder. */
 export interface BuiltApiRequest {
   path: string;
   options: {
@@ -12,7 +13,14 @@ export interface BuiltApiRequest {
   headers: Record<string, string>;
 }
 
+/** Resolves request placeholders and query values into Playwright API request options. */
 export class RequestBuilder {
+  /**
+   * Resolves path placeholders, encodes query values, and selects supported request options.
+   * @param path Endpoint path, optionally containing named placeholders.
+   * @param options Values and payload options for this request.
+   * @returns The resolved path and request options.
+   */
   static build(path: string, options: ApiRequestOptions = {}): BuiltApiRequest {
     let resolvedPath = path.replace(/\{([^}]+)\}/g, (_placeholder, parameter: string) => {
       const value = options.pathParams?.[parameter];
