@@ -35,12 +35,19 @@ export class OpenAccountPage extends BasePage {
     await this.selectAccountType(getAccountData().defaultType);
   }
 
-  /** Selects an account type by the visible option label. */
+  /**
+   * Selects an account type by the visible option label.
+   * @param accountType Visible label of the account type to select.
+   */
   async selectAccountType(accountType: string): Promise<void> {
     await this.accountTypeSelect.selectOption({ label: accountType });
   }
 
-  /** Checks whether the account-type selector contains the requested option. */
+  /**
+   * Checks whether the account-type selector contains the requested option.
+   * @param accountType Visible option label to check.
+   * @returns True when the requested account type is available.
+   */
   async isAccountTypeAvailable(accountType: string): Promise<boolean> {
     return (await this.accountTypeSelect.locator('option').allTextContents())
       .some((option) => option.trim() === accountType);
@@ -100,7 +107,10 @@ export class OpenAccountPage extends BasePage {
     return accountId;
   }
 
-  /** Navigates to Accounts Overview and verifies the new account link is listed. */
+  /**
+   * Navigates to Accounts Overview and verifies the new account link is listed.
+   * @param accountId Newly created account identifier.
+   */
   async verifyAccountInOverview(accountId: string): Promise<void> {
     await this.accountsOverviewLink.click();
     await expect(this.page.getByRole('heading', { name: 'Accounts Overview' })).toBeVisible();

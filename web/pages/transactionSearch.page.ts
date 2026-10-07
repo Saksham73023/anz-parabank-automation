@@ -46,27 +46,40 @@ export class TransactionSearchPage extends BasePage {
     });
   }
 
-  /** Searches the selected account's history using a transaction identifier. */
+  /**
+   * Searches the selected account's history using a transaction identifier.
+   * @param transactionId Transaction ID submitted to the search form.
+   */
   async searchById(transactionId: string): Promise<void> {
     await this.open();
     await this.fill(this.transactionIdInput, transactionId);
     await this.submitSearch(this.findByIdButton);
   }
 
-  /** Selects the account whose history will be searched. */
+  /**
+   * Selects the account whose history will be searched.
+   * @param accountId Available account identifier.
+   */
   async selectAccount(accountId: string): Promise<void> {
     await this.open();
     await this.accountSelect.selectOption(accountId);
   }
 
-  /** Submits a transaction search for one date. */
+  /**
+   * Submits a transaction search for one date.
+   * @param date Date value in the format accepted by ParaBank.
+   */
   async searchByDate(date: string): Promise<void> {
     await this.open();
     await this.fill(this.transactionDateInput, date);
     await this.submitSearch(this.findByDateButton);
   }
 
-  /** Submits a transaction search between inclusive start and end date inputs. */
+  /**
+   * Submits a transaction search between inclusive start and end date inputs.
+   * @param fromDate Start date.
+   * @param toDate End date.
+   */
   async searchByDateRange(fromDate: string, toDate: string): Promise<void> {
     await this.open();
     await this.fill(this.fromDateInput, fromDate);
@@ -74,7 +87,10 @@ export class TransactionSearchPage extends BasePage {
     await this.submitSearch(this.findByDateRangeButton);
   }
 
-  /** Submits a transaction search using an amount string. */
+  /**
+   * Submits a transaction search using an amount string.
+   * @param amount Amount text entered in the search field.
+   */
   async searchByAmount(amount: string): Promise<void> {
     await this.open();
     await this.fill(this.amountInput, amount);
@@ -171,7 +187,10 @@ export class TransactionSearchPage extends BasePage {
     expect(await this.getDisplayedTransactions()).toBeDefined();
   }
 
-  /** Submits a search and waits for its transaction response unless UI validation blocks it. */
+  /**
+   * Submits a search and waits for its transaction response unless UI validation blocks it.
+   * @param button Search action corresponding to the populated criteria.
+   */
   private async submitSearch(button: Locator): Promise<void> {
     const response = this.page.waitForResponse((candidate) => {
       try {
@@ -188,7 +207,11 @@ export class TransactionSearchPage extends BasePage {
     }
   }
 
-  /** Removes currency formatting and parses the displayed amount as a finite number. */
+  /**
+   * Removes currency formatting and parses the displayed amount as a finite number.
+   * @param value Displayed amount text.
+   * @returns Parsed numeric amount.
+   */
   private parseAmount(value: string): number {
     const normalized = value.replace(/[^\d.-]/g, '');
     if (!normalized) return 0;
@@ -197,7 +220,11 @@ export class TransactionSearchPage extends BasePage {
     return amount;
   }
 
-  /** Normalizes supported date values to ISO date text for stable chronological sorting. */
+  /**
+   * Normalizes supported date values to ISO date text for stable chronological sorting.
+   * @param value Numeric timestamp or displayed date.
+   * @returns ISO date string.
+   */
   private toIsoDate(value: number | string): string {
     if (typeof value === 'number') return new Date(value).toISOString().slice(0, 10);
     const match = value.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);

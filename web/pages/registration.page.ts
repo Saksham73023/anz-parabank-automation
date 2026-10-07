@@ -81,7 +81,11 @@ export class RegistrationPage extends BasePage {
 		}
 	}
 
-	/** Populates all registration fields, optionally using a separate confirmation password. */
+	/**
+	 * Populates all registration fields, optionally using a separate confirmation password.
+	 * @param data Customer details and credentials for the registration form.
+	 * @param confirmationPassword Value entered in the password-confirmation field.
+	 */
 	async fillRegistrationForm(data: RegistrationData, confirmationPassword = data.password): Promise<void> {
 		await this.fill(this.firstNameInput, data.firstName);
 		await this.fill(this.lastNameInput, data.lastName);
@@ -101,7 +105,11 @@ export class RegistrationPage extends BasePage {
 		await this.click(this.registerButton);
 	}
 
-	/** Reports whether the expected registration confirmation is currently visible. */
+	/**
+	 * Reports whether the expected registration confirmation is currently visible.
+	 * @param expectedSuccessMessage Confirmation text to locate.
+	 * @returns True when the success message is visible.
+	 */
 	async isRegistrationSuccessful(expectedSuccessMessage: string): Promise<boolean> {
 		return this.isVisible(this.page.getByText(expectedSuccessMessage));
 	}

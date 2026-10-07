@@ -43,7 +43,10 @@ export class LoanRequestPage extends BasePage {
     );
   }
 
-  /** Selects the supplied funding account for the loan request. */
+  /**
+   * Selects the supplied funding account for the loan request.
+   * @param accountId Available account identifier.
+   */
   async selectFundingAccount(accountId: string): Promise<void> {
     await this.open();
     await this.fundingAccountSelect.selectOption(accountId);
@@ -87,7 +90,10 @@ export class LoanRequestPage extends BasePage {
     };
   }
 
-  /** Verifies the requested final lender decision in the result panel. */
+  /**
+   * Verifies the requested final lender decision in the result panel.
+   * @param status Expected lender decision.
+   */
   async verifyLoanStatus(status: 'Approved' | 'Denied'): Promise<void> {
     await expect(this.resultPanel).toBeVisible();
     await expect(this.statusValue).toContainText(new RegExp(`^${status}$`, 'i'));
@@ -102,7 +108,10 @@ export class LoanRequestPage extends BasePage {
     await expect(this.visibleError).toBeVisible();
   }
 
-  /** Reads and validates the new account ID created for an approved loan. */
+  /**
+   * Reads and validates the new account ID created for an approved loan.
+   * @returns Generated loan account identifier.
+   */
   async getLoanAccountId(): Promise<string> {
     await expect(this.loanAccountLink).toBeVisible();
     const accountId = (await this.loanAccountLink.textContent())?.trim() ?? '';
@@ -110,7 +119,10 @@ export class LoanRequestPage extends BasePage {
     return accountId;
   }
 
-  /** Opens Accounts Overview and verifies that the approved loan account is listed. */
+  /**
+   * Opens Accounts Overview and verifies that the approved loan account is listed.
+   * @param accountId Account ID expected in the overview.
+   */
   async verifyLoanAccountInOverview(accountId: string): Promise<void> {
     await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
     await expect(this.page.getByRole('heading', { name: 'Accounts Overview', exact: true })).toBeVisible();

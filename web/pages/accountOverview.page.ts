@@ -65,21 +65,31 @@ export class AccountsOverviewPage extends BasePage {
 		return balances.reduce((total, balance) => total + balance, 0);
 	}
 
-	/** Asserts that each supplied account identifier is visible as a link. */
+	/**
+	 * Asserts that each supplied account identifier is visible as a link.
+	 * @param accountIds Account IDs expected in the overview.
+	 */
 	async verifyAccountIdsVisible(accountIds: string[]): Promise<void> {
 		for (const accountId of accountIds) {
 			await expect(this.page.getByRole('link', { name: accountId, exact: true })).toBeVisible();
 		}
 	}
 
-	/** Opens the requested account, or the first account when no ID is supplied. */
+	/**
+	 * Opens the requested account, or the first account when no ID is supplied.
+	 * @param accountId Optional account ID; empty selects the first visible account.
+	 * @returns The account ID opened.
+	 */
 	async clickAccount(accountId = ''): Promise<string> {
 		const selectedAccountId = accountId || await this.getFirstAccountId();
 		await this.page.getByRole('link', { name: selectedAccountId, exact: true }).click();
 		return selectedAccountId;
 	}
 
-	/** Opens and returns the first account with a non-negative displayed balance. */
+	/**
+	 * Opens and returns the first account with a non-negative displayed balance.
+	 * @returns The selected account ID.
+	 */
 	async clickAccountWithNonNegativeBalance(): Promise<string> {
 		const rowCount = await this.accountRows.count();
 		for (let index = 0; index < rowCount; index += 1) {
@@ -101,13 +111,19 @@ export class AccountsOverviewPage extends BasePage {
 		await expect(this.accountDetailsBalance).not.toHaveText('');
 	}
 
-	/** Reads the account ID from the detail page after validating its display. */
+	/**
+	 * Reads the account ID from the detail page after validating its display.
+	 * @returns The trimmed account identifier.
+	 */
 	async getDisplayedAccountId(): Promise<string> {
 		await this.verifyAccountDetailsDisplayed();
 		return ((await this.accountIdValue.getAttribute('value')) ?? (await this.accountIdValue.textContent()) ?? '').trim();
 	}
 
-	/** Reads and parses the account detail balance after validating the detail view. */
+	/**
+	 * Reads and parses the account detail balance after validating the detail view.
+	 * @returns Numeric account balance.
+	 */
 	async getDisplayedAccountBalance(): Promise<number> {
 		await this.verifyAccountDetailsDisplayed();
 		const balance = (await this.accountDetailsBalance.getAttribute('value')) ?? (await this.accountDetailsBalance.textContent()) ?? '';

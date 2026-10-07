@@ -61,7 +61,12 @@ export class TransferFundsPage extends BasePage {
     return [...new Set(accountIds.flat())];
   }
 
-  /** Selects two available accounts, defaulting to the first distinct pair. */
+  /**
+   * Selects two available accounts, defaulting to the first distinct pair.
+   * @param sourceAccountId Optional source account ID.
+   * @param destinationAccountId Optional destination account ID; must differ from source.
+   * @returns The selected source and destination IDs.
+   */
   async selectAccounts(sourceAccountId?: string, destinationAccountId?: string): Promise<{ source: string; destination: string }> {
     await this.open();
     const accountIds = await this.getAccountIds();
@@ -80,7 +85,11 @@ export class TransferFundsPage extends BasePage {
     return { source, destination };
   }
 
-  /** Selects explicitly supplied source and destination accounts and verifies selection. */
+  /**
+   * Selects explicitly supplied source and destination accounts and verifies selection.
+   * @param source Source account ID.
+   * @param destination Destination account ID.
+   */
   async selectKnownAccounts(source: string, destination: string): Promise<void> {
     await this.open();
     const selectedSource = await this.fromAccountSelect.selectOption(source);
@@ -90,7 +99,10 @@ export class TransferFundsPage extends BasePage {
     }
   }
 
-  /** Returns the currently selected source and destination account identifiers. */
+  /**
+   * Returns the currently selected source and destination account identifiers.
+   * @returns Selected source and destination IDs.
+   */
   async getSelectedAccounts(): Promise<{ source: string; destination: string }> {
     await this.open();
     return {
@@ -99,7 +111,11 @@ export class TransferFundsPage extends BasePage {
     };
   }
 
-  /** Navigates to overview if necessary and parses the requested account's displayed balance. */
+  /**
+   * Navigates to overview if necessary and parses the requested account's displayed balance.
+   * @param accountId Account whose balance is requested.
+   * @returns Numeric balance from the account overview.
+   */
   async getAccountBalance(accountId: string): Promise<number> {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
     const row = this.page.locator(`#accountTable tbody tr`).filter({ has: this.page.getByRole('link', { name: accountId, exact: true }) });
@@ -110,7 +126,10 @@ export class TransferFundsPage extends BasePage {
     return this.parseAmount((await row.locator('td').nth(1).textContent()) ?? '');
   }
 
-  /** Returns the balance of the currently selected transfer source. */
+  /**
+   * Returns the balance of the currently selected transfer source.
+   * @returns Numeric available balance.
+   */
   async getAvailableBalance(): Promise<number> {
     const { source } = await this.getSelectedAccounts();
     return this.getAccountBalance(source);
@@ -142,7 +161,10 @@ export class TransferFundsPage extends BasePage {
     return { amount: this.parseAmount(String(amount)), transactionId, confirmationText };
   }
 
-  /** Submits a supplied amount without requiring a successful transfer confirmation. */
+  /**
+   * Submits a supplied amount without requiring a successful transfer confirmation.
+   * @param amount Text value entered to exercise transfer validation.
+   */
   async submitInvalidTransfer(amount: string): Promise<void> {
     await this.open();
     await this.fill(this.amountInput, amount);
@@ -172,7 +194,10 @@ export class TransferFundsPage extends BasePage {
     await expect(this.confirmationHeading).not.toBeVisible();
   }
 
-  /** Opens the selected account detail page to inspect its transaction ledger. */
+  /**
+   * Opens the selected account detail page to inspect its transaction ledger.
+   * @param accountId Account whose activity is opened.
+   */
   async openAccountActivity(accountId: string): Promise<void> {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
     if (!(await accountLink.isVisible())) {
@@ -182,7 +207,11 @@ export class TransferFundsPage extends BasePage {
     await this.page.getByRole('heading', { name: 'Account Details', exact: true }).waitFor({ state: 'visible' });
   }
 
-  /** Parses the account activity table into debit/credit ledger records. */
+  /**
+   * Parses the account activity table into debit/credit ledger records.
+   * @param accountId Account whose ledger should be read.
+   * @returns Normalized visible ledger entries.
+   */
   async getLedgerEntries(accountId: string): Promise<LedgerEntry[]> {
     await this.openAccountActivity(accountId);
     await expect.poll(() => this.activityTable.locator('tbody tr').count()).toBeGreaterThan(0);
@@ -207,19 +236,32 @@ export class TransferFundsPage extends BasePage {
     return entries;
   }
 
-  /** Asserts that account activity includes a matching debit or credit entry. */
+  /**
+   * Asserts that account activity includes a matching debit or credit entry.
+   * @param accountId Account whose ledger is checked.
+   * @param type Expected debit or credit classification.
+   * @param amount Optional expected absolute amount.
+   */
   async verifyLedgerEntry(accountId: string, type: 'debit' | 'credit', amount?: number): Promise<void> {
     const entries = await this.getLedgerEntries(accountId);
     const matchingEntry = entries.find((entry) => entry.type === type && (amount === undefined || Math.abs(entry.amount - amount) < 0.01));
     expect(matchingEntry, `Expected ${type} ledger entry for ${amount ?? 'any amount'} on account ${accountId}`).toBeDefined();
   }
 
-  /** Returns the account's current displayed balance. */
+  /**
+   * Returns the account's current displayed balance.
+   * @param accountId Account whose balance is read.
+   * @returns Current numeric balance.
+   */
   async getCurrentBalance(accountId: string): Promise<number> {
     return this.getAccountBalance(accountId);
   }
 
-  /** Removes currency symbols and parses a displayed monetary amount. */
+  /**
+   * Removes currency symbols and parses a displayed monetary amount.
+   * @param value Formatted amount from the UI.
+   * @returns Numeric amount.
+   */
   private parseAmount(value: string): number {
     const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ''));
     if (Number.isNaN(parsed)) throw new Error(`Unable to parse monetary value: ${value}`);

@@ -44,7 +44,11 @@ export class LoginPage extends BasePage {
     await this.loginButton.click();
   }
 
-  /** Fills username and password fields without submitting the form. */
+  /**
+   * Fills username and password fields without submitting the form.
+   * @param username ParaBank user name.
+   * @param password ParaBank password.
+   */
   async fillCredentials(username: string, password: string): Promise<void> {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
@@ -63,7 +67,10 @@ export class LoginPage extends BasePage {
     await expect(this.usernameInput).toBeHidden();
   }
 
-  /** Verifies the expected error and confirms the application remains unauthenticated. */
+  /**
+   * Verifies the expected error and confirms the application remains unauthenticated.
+   * @param expectedMessage Expected login validation text.
+   */
   async verifyLoginRejected(expectedMessage: string): Promise<void> {
     await expect(this.loginError.first()).toHaveText(expectedMessage);
     await expect(this.page).toHaveURL(this.loginRoute);

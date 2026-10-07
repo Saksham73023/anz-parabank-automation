@@ -46,7 +46,11 @@ export class BillPaymentPage extends BasePage {
     await expect(this.fieldLocators.payeeName).toBeVisible();
   }
 
-  /** Selects the requested available funding account or the current/first available account. */
+  /**
+   * Selects the requested available funding account or the current/first available account.
+   * @param accountId Optional funding account; must be present in the selector when provided.
+   * @returns The ID of the selected funding account.
+   */
   async selectFundingAccount(accountId?: string): Promise<string> {
     await this.open();
     const accountIds = await this.fundingAccount.locator('option').evaluateAll((options) =>
@@ -96,7 +100,12 @@ export class BillPaymentPage extends BasePage {
     };
   }
 
-  /** Submits a sequence of payments and returns each individual UI result. */
+  /**
+   * Submits a sequence of payments and returns each individual UI result.
+   * @param payments Payment data submitted sequentially.
+   * @param accountId Optional shared funding account.
+   * @returns One outcome for each submitted payment.
+   */
   async submitBillPayments(
     payments: readonly Partial<BillPaymentData>[],
     accountId?: string
@@ -114,7 +123,10 @@ export class BillPaymentPage extends BasePage {
     await expect(this.resultPanel).toContainText(/successful/i);
   }
 
-  /** Verifies a required-field message associated with the specified form field. */
+  /**
+   * Verifies a required-field message associated with the specified form field.
+   * @param field Typed bill-payment field expected to be required.
+   */
   async verifyRequiredField(field: BillPaymentField): Promise<void> {
     const fieldError = this.fieldLocators[field]
       .locator('xpath=ancestor::tr')
@@ -123,7 +135,10 @@ export class BillPaymentPage extends BasePage {
     await this.verifyError(fieldError, /required|cannot be empty|must be provided/i);
   }
 
-  /** Verifies that a visible payment validation message matches the expected pattern. */
+  /**
+   * Verifies that a visible payment validation message matches the expected pattern.
+   * @param expectedMessage Pattern expected in the visible validation message.
+   */
   async verifyPaymentError(expectedMessage: RegExp): Promise<void> {
     const matchingError = this.page.locator('.error:visible').filter({ hasText: expectedMessage }).first();
     await this.verifyError(matchingError, expectedMessage);
