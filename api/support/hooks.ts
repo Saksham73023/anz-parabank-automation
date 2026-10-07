@@ -2,7 +2,7 @@ import { After, Before, setDefaultTimeout } from '@cucumber/cucumber';
 import { ApiWorld } from './world';
 import { ApiClient } from '../utils/apiClient';
 
-setDefaultTimeout(120_000);
+setDefaultTimeout(360_000);
 
 /** Creates a fresh API request context before each tagged API scenario. */
 Before({ tags: '@api' }, async function (this: ApiWorld) {

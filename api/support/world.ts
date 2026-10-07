@@ -23,6 +23,7 @@ export class ApiWorld extends World {
   };
   e2eResponses: APIResponse[] = [];
   e2eOpeningBalance?: number;
+  e2eSourceBalanceBeforeTransfer?: number;
   e2eDestinationOpeningBalance?: number;
   e2eSeedAmount?: number;
   e2eInitialTransactionCount?: number;

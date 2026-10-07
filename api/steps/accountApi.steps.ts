@@ -45,7 +45,6 @@ When('user creates a checking account', async function (this: ApiWorld) {
 
 /**
  * Fetches the selected account, allowing expected invalid statuses for negative tests.
- * If the configured valid ID is stale, selects an account from the configured customer.
  */
 When('user fetches account details', async function (this: ApiWorld) {
   const accountApi = new AccountApi(apiClientFor(this));
@@ -55,30 +54,7 @@ When('user fetches account details', async function (this: ApiWorld) {
     return;
   }
 
-  try {
-    this.lastResponse = await accountApi.getAccount(requestedAccountId);
-    return;
-  } catch (error) {
-    const customerId = this.customerId || getApiTestData().customerId;
-    const customerAccounts = await accountApi.getCustomerAccounts(customerId);
-    const payload = await readJsonResponse<unknown>(customerAccounts);
-    if (!Array.isArray(payload)) {
-      throw error;
-    }
-
-    const firstAccount = payload.find((item): item is { id: string | number } =>
-      typeof item === 'object' && item !== null && 'id' in item &&
-      (typeof item.id === 'string' || typeof item.id === 'number') &&
-      String(item.id).trim() !== ''
-    );
-
-    if (!firstAccount) {
-      throw error;
-    }
-
-    this.accountId = String(firstAccount.id);
-    this.lastResponse = await accountApi.getAccount(this.accountId);
-  }
+  this.lastResponse = await accountApi.getAccount(requestedAccountId);
 });
 
 /** Retrieves the configured customer's account list. */
@@ -164,10 +140,10 @@ async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 
 }
 
 /**
- * Chooses the preferred eligible account or the highest-balance checking/savings account.
- * @param accountApi Service used to retrieve the customer's accounts.
- * @param customerId Owner whose eligible accounts are considered.
- * @param preferredAccountId Preferred configured funding account.
+ * Validates the configured account directly as the funding account for account creation.
+ * @param accountApi Account service used to validate the configured account.
+ * @param customerId Expected owner of the funding account.
+ * @param preferredAccountId Configured funding account identifier.
  * @returns The selected funding account ID.
  */
 async function resolveFundingAccountId(
@@ -175,38 +151,29 @@ async function resolveFundingAccountId(
   customerId: string,
   preferredAccountId: string
 ): Promise<string> {
-  const accounts = await readJsonResponse<unknown>(await accountApi.getCustomerAccounts(customerId));
-  if (!Array.isArray(accounts)) {
-    throw new Error(`Could not select a funding account: customer ${customerId} accounts response was not an array.`);
+  if (!preferredAccountId.trim()) {
+    throw new Error('API_ACCOUNT_ID must be configured to select an account for account creation.');
   }
 
-  const eligibleAccounts: Array<{ id: string; balance: number }> = [];
-  for (const account of accounts) {
-    if (typeof account !== 'object' || account === null) continue;
-
-    const record = account as Record<string, unknown>;
-    const id = record.id;
-    const ownerId = record.customerId;
-    const type = record.type ?? record.accountType;
-    const balance = Number(record.balance ?? record.availableBalance);
-    if (
-      (typeof id === 'string' || typeof id === 'number') &&
-      String(id).trim() !== '' &&
-      String(ownerId) === customerId &&
-      (type === 'CHECKING' || type === 'SAVINGS') &&
-      Number.isFinite(balance)
-    ) {
-      eligibleAccounts.push({ id: String(id), balance });
-    }
+  const response = await accountApi.getAccount(preferredAccountId, [200, 400, 404]);
+  if (response.status() !== 200) {
+    throw new Error(`Configured funding account ${preferredAccountId} was not found; set API_ACCOUNT_ID to a valid account for customer ${customerId}.`);
   }
 
-  const preferred = eligibleAccounts.find((account) => account.id === preferredAccountId);
-  if (preferred) return preferred.id;
-
-  eligibleAccounts.sort((left, right) => right.balance - left.balance);
-  const fundingAccount = eligibleAccounts[0];
-  if (!fundingAccount) {
-    throw new Error(`Customer ${customerId} has no CHECKING or SAVINGS account available to fund a new account.`);
+  const payload = await readJsonResponse<unknown>(response);
+  if (typeof payload !== 'object' || payload === null) {
+    throw new Error(`Configured funding account ${preferredAccountId} returned an invalid response.`);
   }
-  return fundingAccount.id;
+
+  const record = payload as Record<string, unknown>;
+  const accountId = record.id;
+  const accountType = record.type ?? record.accountType;
+  if (
+    (typeof accountId !== 'string' && typeof accountId !== 'number') ||
+    String(record.customerId) !== customerId ||
+    (accountType !== 'CHECKING' && accountType !== 'SAVINGS')
+  ) {
+    throw new Error(`Configured account ${preferredAccountId} is not an eligible funding account for customer ${customerId}.`);
+  }
+  return String(accountId);
 }

@@ -2,6 +2,7 @@
 import { expect } from 'playwright/test';
 import { AccountApi } from '../services/accountApi';
 import { apiClientFor, getApiTestData } from '../services/apiHelpers';
+import { TransactionApi } from '../services/transactionApi';
 import { TransferApi } from '../services/transferApi';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
@@ -96,90 +97,57 @@ Then('destination account balance should increase', async function (this: ApiWor
 });
 
 /**
- * Fetches the customer's account list and resolves fresh balances for both transfer accounts.
+ * Fetches both transfer accounts directly and resolves their current balances.
  * @param world Scenario state containing the customer and transfer account IDs.
  * @returns The current source and destination balances.
  */
 async function loadBalancesAfterTransfer(world: ApiWorld): Promise<{ source: number; destination: number }> {
   const { customerId } = getApiTestData();
   const expectedCustomerId = world.customerId || customerId;
-  const response = await new AccountApi(apiClientFor(world)).getCustomerAccounts(expectedCustomerId);
-  const payload = await readJsonResponse<unknown>(response);
-  if (!Array.isArray(payload)) {
-    throw new Error(`Customer ${expectedCustomerId} accounts response was not an array.`);
-  }
-
-  const balances = new Map<string, number>();
-  for (const account of payload) {
-    if (typeof account !== 'object' || account === null) continue;
-    const record = account as Record<string, unknown>;
-    const id = record.id;
-    if (
-      (typeof id !== 'string' && typeof id !== 'number') ||
-      String(record.customerId) !== expectedCustomerId
-    ) {
-      continue;
-    }
-
-    const balance = Number(record.balance ?? record.availableBalance);
-    if (Number.isFinite(balance)) balances.set(String(id), balance);
-  }
-
-  const source = balances.get(world.sourceAccountId);
-  const destination = balances.get(world.destinationAccountId);
-  if (source === undefined || destination === undefined) {
-    throw new Error('Could not find both transfer accounts in the customer accounts response.');
-  }
-  return { source, destination };
+  const accountApi = new AccountApi(apiClientFor(world));
+  const [source, destination] = await Promise.all([
+    getTransferAccount(accountApi, world.sourceAccountId, expectedCustomerId),
+    getTransferAccount(accountApi, world.destinationAccountId, expectedCustomerId)
+  ]);
+  return { source: source.balance, destination: destination.balance };
 }
 
 /**
- * Selects distinct eligible accounts and captures their pre-transfer balances.
- * Requires a funded checking/savings source and another account belonging to the customer.
+ * Validates the configured source and destination accounts and captures their balances.
+ * Creates a savings destination when the configured destination is unavailable.
  * @param world Scenario state to populate with selected accounts and baseline balances.
  */
 async function resolveTransferAccounts(world: ApiWorld): Promise<void> {
   const { customerId, transfer } = getApiTestData();
-  const accountApi = new AccountApi(apiClientFor(world));
-  const response = await accountApi.getCustomerAccounts(world.customerId || customerId);
-  const payload = await readJsonResponse<unknown>(response);
-  if (!Array.isArray(payload)) {
-    throw new Error(`Customer ${world.customerId || customerId} accounts response was not an array.`);
+  const client = apiClientFor(world);
+  const accountApi = new AccountApi(client);
+  const transactionApi = new TransactionApi(client);
+  const expectedCustomerId = world.customerId || customerId;
+  const requestedSourceId = world.sourceAccountId || transfer.sourceAccountId;
+  const requestedDestinationId = world.destinationAccountId || transfer.destinationAccountId;
+  let source = await getTransferAccount(accountApi, requestedSourceId, expectedCustomerId);
+  if (source.balance < transfer.amount) {
+    await transactionApi.seedWithDeposit(source.id, transfer.amount - source.balance);
+    source = await getTransferAccount(accountApi, source.id, expectedCustomerId);
+  }
+  if (source.balance < transfer.amount) {
+    throw new Error(`Source account ${source.id} still does not have enough balance for a ${transfer.amount} transfer after funding.`);
   }
 
-  const accounts: Array<{ id: string; balance: number }> = [];
-  for (const account of payload) {
-    if (typeof account !== 'object' || account === null) continue;
-    const record = account as Record<string, unknown>;
-    const id = record.id;
-    const type = record.type ?? record.accountType;
-    const balance = Number(record.balance ?? record.availableBalance);
-    if (
-      (typeof id === 'string' || typeof id === 'number') &&
-      String(id).trim() !== '' &&
-      String(record.customerId) === (world.customerId || customerId) &&
-      (type === 'CHECKING' || type === 'SAVINGS') &&
-      Number.isFinite(balance)
-    ) {
-      accounts.push({ id: String(id), balance });
+  let destination: TransferAccountSnapshot | undefined;
+  if (requestedDestinationId && requestedDestinationId !== source.id) {
+    const response = await accountApi.getAccount(requestedDestinationId, [200, 400, 404]);
+    if (response.status() === 200) {
+      destination = await parseTransferAccount(response, expectedCustomerId);
     }
   }
 
-  const requestedSourceId = world.sourceAccountId || transfer.sourceAccountId;
-  const requestedDestinationId = world.destinationAccountId || transfer.destinationAccountId;
-  const source = accounts.find((account) => account.id === requestedSourceId && account.balance >= transfer.amount)
-    ?? accounts
-      .filter((account) => account.balance >= transfer.amount)
-      .sort((left, right) => right.balance - left.balance)[0];
-  if (!source) {
-    throw new Error(`Customer ${world.customerId || customerId} has no CHECKING or SAVINGS account with enough balance for a ${transfer.amount} transfer.`);
-  }
-
-  const destination = accounts.find((account) =>
-    account.id === requestedDestinationId && account.id !== source.id
-  ) ?? accounts.find((account) => account.id !== source.id);
   if (!destination) {
-    throw new Error(`Customer ${world.customerId || customerId} needs at least two CHECKING or SAVINGS accounts to transfer funds.`);
+    const response = await accountApi.createAccount(expectedCustomerId, 'SAVINGS', source.id);
+    destination = await parseTransferAccount(response, expectedCustomerId);
+    if (destination.id === source.id) {
+      throw new Error('ParaBank returned the source account as the newly created destination account.');
+    }
   }
 
   world.sourceAccountId = source.id;
@@ -187,4 +155,58 @@ async function resolveTransferAccounts(world: ApiWorld): Promise<void> {
   world.transferAmount = transfer.amount;
   world.sourceBalanceBeforeTransfer = source.balance;
   world.destinationBalanceBeforeTransfer = destination.balance;
+}
+
+interface TransferAccountSnapshot {
+  id: string;
+  type: 'CHECKING' | 'SAVINGS';
+  balance: number;
+}
+
+/**
+ * Retrieves and validates a transfer account owned by the selected customer.
+ * @param accountApi Account service bound to the current scenario.
+ * @param accountId Account identifier to read.
+ * @param customerId Expected account owner.
+ * @returns The account identifier, type, and current balance.
+ */
+async function getTransferAccount(
+  accountApi: AccountApi,
+  accountId: string,
+  customerId: string
+): Promise<TransferAccountSnapshot> {
+  const response = await accountApi.getAccount(accountId);
+  return parseTransferAccount(response, customerId);
+}
+
+/**
+ * Parses and validates an account response needed by transfer setup and balance checks.
+ * @param response Successful ParaBank account response.
+ * @param customerId Expected account owner.
+ * @returns A validated account snapshot.
+ */
+async function parseTransferAccount(
+  response: Awaited<ReturnType<AccountApi['getAccount']>>,
+  customerId: string
+): Promise<TransferAccountSnapshot> {
+  const payload = await readJsonResponse<unknown>(response);
+  if (typeof payload !== 'object' || payload === null) {
+    throw new Error(`Account ${response.url()} response was not an object.`);
+  }
+
+  const record = payload as Record<string, unknown>;
+  const id = record.id;
+  const type = record.type ?? record.accountType;
+  const balance = Number(record.balance ?? record.availableBalance);
+  if (
+    (typeof id !== 'string' && typeof id !== 'number') ||
+    String(id).trim() === '' ||
+    String(record.customerId) !== customerId ||
+    (type !== 'CHECKING' && type !== 'SAVINGS') ||
+    !Number.isFinite(balance)
+  ) {
+    throw new Error(`Account response for customer ${customerId} is missing valid ownership, type, or balance data.`);
+  }
+
+  return { id: String(id), type, balance };
 }

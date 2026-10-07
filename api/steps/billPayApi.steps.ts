@@ -2,15 +2,18 @@
 import { expect } from 'playwright/test';
 import { AccountApi } from '../services/accountApi';
 import { BillPayApi } from '../services/billPayApi';
+import { TransactionApi } from '../services/transactionApi';
 import { apiClientFor, getApiTestData } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
-/** Chooses a funded customer account and submits the configured bill-payment request. */
+/** Validates the configured account and submits the bill-payment request. */
 When('user submits bill payment request', async function (this: ApiWorld) {
   const { billPay, customerId } = getApiTestData();
+  const client = apiClientFor(this);
   const accountId = await resolveBillPayAccountId(
-    new AccountApi(apiClientFor(this)),
+    new AccountApi(client),
+    new TransactionApi(client),
     customerId,
     billPay.accountId,
     billPay.amount
@@ -49,50 +52,55 @@ Then('account balance should be reduced', async function (this: ApiWorld) {
 });
 
 /**
- * Selects the preferred account with sufficient balance, or the highest-balance eligible account.
- * @param accountApi Service used to list customer accounts.
- * @param customerId Owner whose accounts are evaluated.
- * @param preferredAccountId Preferred configured account.
+ * Validates the configured bill-pay account and its available balance.
+ * @param accountApi Service used to retrieve the configured account.
+ * @param customerId Expected account owner.
+ * @param preferredAccountId Configured account to use for payment.
  * @param amount Minimum balance required for the payment.
- * @returns The selected funding account ID.
+ * @returns The validated funding account ID.
  */
 async function resolveBillPayAccountId(
   accountApi: AccountApi,
+  transactionApi: TransactionApi,
   customerId: string,
   preferredAccountId: string,
   amount: number
 ): Promise<string> {
-  const payload = await readJsonResponse<unknown>(await accountApi.getCustomerAccounts(customerId));
-  if (!Array.isArray(payload)) {
-    throw new Error(`Customer ${customerId} accounts response was not an array.`);
+  if (!preferredAccountId.trim()) {
+    throw new Error('API_BILLPAY_ACCOUNT_ID must be configured before submitting a bill payment.');
   }
 
-  const eligibleAccounts: Array<{ id: string; balance: number }> = [];
-  for (const account of payload) {
-    if (typeof account !== 'object' || account === null) continue;
-    const record = account as Record<string, unknown>;
-    const id = record.id;
-    const type = record.type ?? record.accountType;
-    const balance = Number(record.balance ?? record.availableBalance);
-    if (
-      (typeof id === 'string' || typeof id === 'number') &&
-      String(id).trim() !== '' &&
-      String(record.customerId) === customerId &&
-      (type === 'CHECKING' || type === 'SAVINGS') &&
-      Number.isFinite(balance) &&
-      balance >= amount
-    ) {
-      eligibleAccounts.push({ id: String(id), balance });
-    }
+  const response = await accountApi.getAccount(preferredAccountId, [200, 400, 404]);
+  if (response.status() !== 200) {
+    throw new Error(`Configured bill-pay account ${preferredAccountId} was not found; set API_BILLPAY_ACCOUNT_ID to a valid account.`);
   }
 
-  const preferred = eligibleAccounts.find((account) => account.id === preferredAccountId);
-  if (preferred) return preferred.id;
-
-  eligibleAccounts.sort((left, right) => right.balance - left.balance);
-  const selected = eligibleAccounts[0];
-  if (!selected) {
-    throw new Error(`Customer ${customerId} has no CHECKING or SAVINGS account with enough balance for a ${amount} bill payment.`);
+  const payload = await readJsonResponse<unknown>(response);
+  if (typeof payload !== 'object' || payload === null) {
+    throw new Error(`Configured bill-pay account ${preferredAccountId} returned an invalid response.`);
   }
-  return selected.id;
+
+  const record = payload as Record<string, unknown>;
+  const id = record.id;
+  const accountType = record.type ?? record.accountType;
+  let balance = Number(record.balance ?? record.availableBalance);
+  if (
+    (typeof id !== 'string' && typeof id !== 'number') ||
+    String(record.customerId) !== customerId ||
+    (accountType !== 'CHECKING' && accountType !== 'SAVINGS')
+  ) {
+    throw new Error(`Configured account ${preferredAccountId} is not eligible for bill payment by customer ${customerId}.`);
+  }
+  if (!Number.isFinite(balance)) {
+    throw new Error(`Configured bill-pay account ${String(id)} does not contain a valid balance.`);
+  }
+  if (balance < amount) {
+    await transactionApi.seedWithDeposit(String(id), amount - balance);
+    const refreshed = await readJsonResponse<Record<string, unknown>>(await accountApi.getAccount(String(id)));
+    balance = Number(refreshed.balance ?? refreshed.availableBalance);
+  }
+  if (!Number.isFinite(balance) || balance < amount) {
+    throw new Error(`Configured bill-pay account ${String(id)} still does not have enough balance for a ${amount} payment after funding.`);
+  }
+  return String(id);
 }

@@ -3,6 +3,7 @@ Feature: Transfer API
 
 # ParaBank exposes transfer as an action endpoint, not a CRUD-managed transfer resource.
 Background:
+  Given user is logged into ParaBank
   Given source account exists
   And destination account exists
 

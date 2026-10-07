@@ -101,11 +101,14 @@ export class ApiClient {
     const allowedStatuses = expectedStatus === undefined
       ? undefined
       : Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
-    const maxRetries = 3;
-    const maxRateLimitRetries = 2;
-    let previousRateLimitDelay = 0;
+    const maxServerRetries = 3;
+    const maxRateLimitRetries = 5;
+    const maxRateLimitWait = 300_000;
+    let serverRetries = 0;
+    let rateLimitRetries = 0;
+    let rateLimitWaited = 0;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    while (true) {
       const builtRequest = RequestBuilder.build(path, options);
       const requestPath = options.rootPath
         ? `/${builtRequest.path.replace(/^\/+/, '')}`
@@ -129,19 +132,30 @@ export class ApiClient {
       }
 
       const body = response.status() === 429 ? await response.text() : undefined;
-      if (response.status() === 429 && attempt < maxRateLimitRetries) {
+      if (response.status() === 429) {
+        if (rateLimitRetries >= maxRateLimitRetries) {
+          const responseBody = (body ?? '').slice(0, 1000);
+          throw new Error(
+            `${method} ${path} remained rate-limited after ${rateLimitRetries} retries.` +
+            `${responseBody ? ` Response: ${responseBody}` : ''}`
+          );
+        }
         const retryDelay = getRetryDelay(response.headers()['retry-after'], body);
-        const delay = Math.max(retryDelay, previousRateLimitDelay * 2);
-        previousRateLimitDelay = delay;
-        await new Promise((resolve) => setTimeout(
-          resolve,
-          delay
-        ));
+        if (rateLimitWaited + retryDelay > maxRateLimitWait) {
+          throw new Error(
+            `${method} ${path} was rate-limited for at least ${Math.ceil(retryDelay / 1000)} seconds; ` +
+            `the remaining API client retry budget is ${Math.floor((maxRateLimitWait - rateLimitWaited) / 1000)} seconds. Retry the scenario later.`
+          );
+        }
+        rateLimitRetries++;
+        rateLimitWaited += retryDelay;
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
         continue;
       }
 
-      if (response.status() >= 500 && attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+      if (response.status() >= 500 && serverRetries < maxServerRetries) {
+        serverRetries++;
+        await new Promise((resolve) => setTimeout(resolve, 250 * serverRetries));
         continue;
       }
 
@@ -149,8 +163,6 @@ export class ApiClient {
       const responseBody = (body ?? await response.text()).slice(0, 1000);
       throw new Error(`${method} ${path} returned ${response.status()}, expected ${expectation}.${responseBody ? ` Response: ${responseBody}` : ''}`);
     }
-
-    throw new Error(`${method} ${path} failed after ${maxRetries + 1} attempts.`);
   }
 }
 

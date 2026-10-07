@@ -44,44 +44,57 @@ When('user seeds account transactions', async function (this: ApiWorld) {
 When('user completes a transfer between accounts', async function (this: ApiWorld) {
   const { customerId, transfer, billPay } = getApiTestData();
   const sourceAccountId = this.accountId || getApiTestData().accountId;
-  const accounts = await readJsonResponse<unknown>(
-    await new AccountApi(apiClientFor(this)).getCustomerAccounts(this.customerId || customerId)
-  );
-  if (!Array.isArray(accounts)) {
-    throw new Error('Customer accounts response must be an array to select the E2E transfer destination.');
-  }
+  const expectedCustomerId = this.customerId || customerId;
+  const accountApi = new AccountApi(apiClientFor(this));
+  let destination: { id: string } | undefined;
 
-  const candidates: Array<{ id: string; balance: number }> = [];
-  for (const account of accounts) {
-    if (typeof account !== 'object' || account === null) continue;
-    const record = account as Record<string, unknown>;
-    const id = record.id;
-    const balance = Number(record.balance ?? record.availableBalance);
-    const type = record.type ?? record.accountType;
-    if (
-      (typeof id === 'string' || typeof id === 'number') &&
-      String(id) !== sourceAccountId &&
-      (type === 'CHECKING' || type === 'SAVINGS') &&
-      Number.isFinite(balance)
-    ) {
-      candidates.push({ id: String(id), balance });
+  if (transfer.destinationAccountId && transfer.destinationAccountId !== sourceAccountId) {
+    const response = await accountApi.getAccount(transfer.destinationAccountId, [200, 400, 404]);
+    if (response.status() === 200) {
+      const account = await readJsonResponse<Record<string, unknown>>(response);
+      const type = account.type ?? account.accountType;
+      if (
+        String(account.customerId) !== expectedCustomerId ||
+        (type !== 'CHECKING' && type !== 'SAVINGS')
+      ) {
+        throw new Error(`Configured destination account ${transfer.destinationAccountId} is not eligible for customer ${expectedCustomerId}.`);
+      }
+      destination = { id: String(account.id) };
     }
   }
 
-  const destination = candidates.find((account) => account.id === transfer.destinationAccountId)
-    ?? candidates[0];
   if (!destination) {
-    throw new Error(`Customer ${this.customerId || customerId} needs another account to reconcile the E2E transfer.`);
-  }
-  const amountAvailable = (this.e2eOpeningBalance ?? 0) + (this.e2eSeedAmount ?? 0);
-  if (amountAvailable <= transfer.amount + billPay.amount) {
-    throw new Error('The E2E source account does not have enough seeded funds for both transfer and bill payment.');
+    const createdResponse = await accountApi.createAccount(expectedCustomerId, 'SAVINGS', sourceAccountId);
+    const created = await readJsonResponse<Record<string, unknown>>(createdResponse);
+    const createdId = created.id ?? created.accountId;
+    if (
+      (typeof createdId !== 'string' && typeof createdId !== 'number') ||
+      String(createdId).trim() === '' ||
+      String(created.customerId) !== expectedCustomerId
+    ) {
+      throw new Error(`Could not create a destination account for customer ${expectedCustomerId}.`);
+    }
+    destination = { id: String(createdId) };
   }
 
+  if (destination.id === sourceAccountId) {
+    throw new Error('The E2E source and destination accounts must be different.');
+  }
+
+  const sourceBeforeTransfer = await accountApi.getAccount(sourceAccountId);
+  const destinationBeforeTransfer = await accountApi.getAccount(destination.id);
   this.sourceAccountId = sourceAccountId;
   this.destinationAccountId = destination.id;
   this.transferAmount = transfer.amount;
-  this.e2eDestinationOpeningBalance = destination.balance;
+  this.e2eSourceBalanceBeforeTransfer = getBalance(
+    await readJsonResponse<Record<string, unknown>>(sourceBeforeTransfer)
+  );
+  if (this.e2eSourceBalanceBeforeTransfer <= transfer.amount + billPay.amount) {
+    throw new Error('The E2E source account does not have enough funds after destination setup for both transfer and bill payment.');
+  }
+  this.e2eDestinationOpeningBalance = getBalance(
+    await readJsonResponse<Record<string, unknown>>(destinationBeforeTransfer)
+  );
   this.lastResponse = await new TransferApi(apiClientFor(this)).transfer({
     sourceAccountId,
     destinationAccountId: destination.id,
@@ -121,7 +134,7 @@ Then('all api responses should be successful', function (this: ApiWorld) {
  */
 Then('account balances and transaction history should reconcile', async function (this: ApiWorld) {
   if (
-    this.e2eOpeningBalance === undefined ||
+    this.e2eSourceBalanceBeforeTransfer === undefined ||
     this.e2eDestinationOpeningBalance === undefined ||
     this.e2eSeedAmount === undefined ||
     this.e2eInitialTransactionCount === undefined ||
@@ -146,7 +159,7 @@ Then('account balances and transaction history should reconcile', async function
   const initialTransactionIds = new Set(this.e2eInitialTransactionIds);
   const newTransactions = finalTransactions.filter((transaction) => !initialTransactionIds.has(transaction.id));
 
-  const expectedSource = this.e2eOpeningBalance + this.e2eSeedAmount - transfer.amount - billPay.amount;
+  const expectedSource = this.e2eSourceBalanceBeforeTransfer - transfer.amount - billPay.amount;
   const expectedDestination = this.e2eDestinationOpeningBalance + transfer.amount;
   expect(toCents(sourceBalance)).toBe(toCents(expectedSource));
   expect(toCents(destinationBalance)).toBe(toCents(expectedDestination));
