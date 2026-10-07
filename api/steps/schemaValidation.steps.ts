@@ -1,17 +1,19 @@
 ﻿import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Then, When } from '@cucumber/cucumber';
+import { expect } from 'playwright/test';
 import { AccountApi } from '../services/accountApi';
 import { CustomerApi } from '../services/customerApi';
+import { TransactionApi } from '../services/transactionApi';
 import { apiClientFor, getApiTestData } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { ApiAssertions } from '../utils/apiAssertions';
 import { readJsonResponse } from '../utils/apiUtils';
 
 When('user fetches transaction details', async function (this: ApiWorld) {
-  const accountApi = new AccountApi(apiClientFor(this));
+  const transactionApi = new TransactionApi(apiClientFor(this));
   const configuredAccountId = this.accountId || getApiTestData().accountId;
-  this.lastResponse = await accountApi.getAccountTransactions(configuredAccountId, [200, 400, 404]);
+  this.lastResponse = await transactionApi.getAccountTransactions(configuredAccountId, [200, 400, 404]);
   if (this.lastResponse.status() === 200) return;
 
   const customerId = this.customerId || getApiTestData().customerId;
@@ -26,7 +28,7 @@ When('user fetches transaction details', async function (this: ApiWorld) {
     const id = account.id;
     if ((typeof id !== 'string' && typeof id !== 'number') || String(id).trim() === '') continue;
 
-    const response = await accountApi.getAccountTransactions(String(id), [200, 400, 404]);
+    const response = await transactionApi.getAccountTransactions(String(id), [200, 400, 404]);
     if (response.status() === 200) {
       this.accountId = String(id);
       this.lastResponse = response;
@@ -35,6 +37,19 @@ When('user fetches transaction details', async function (this: ApiWorld) {
   }
 
   throw new Error(`No transaction history was found for customer ${customerId}'s accounts.`);
+});
+
+Then('transaction history should be returned', async function (this: ApiWorld) {
+  const transactions = await readJsonResponse<unknown>(this.lastResponse!);
+  if (!Array.isArray(transactions)) {
+    throw new Error('Transaction history response must be a JSON array.');
+  }
+  for (const transaction of transactions) {
+    expect(transaction).toBeTruthy();
+    expect(typeof transaction).toBe('object');
+    expect(transaction).toHaveProperty('id');
+    expect(transaction).toHaveProperty('amount');
+  }
 });
 
 Then('customer response schema should be valid', async function (this: ApiWorld) {

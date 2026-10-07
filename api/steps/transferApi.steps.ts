@@ -67,26 +67,56 @@ Then('transfer transaction should be recorded', async function (this: ApiWorld) 
 });
 
 Then('source account balance should decrease', async function (this: ApiWorld) {
-  const api = new AccountApi(apiClientFor(this));
   if (this.sourceBalanceBeforeTransfer === undefined) {
     throw new Error('Source balance was not captured before the transfer.');
   }
-  const payload = await readJsonResponse<{ balance?: number | string }>(await api.getAccount(this.sourceAccountId));
-  const balanceAfter = Number(payload.balance);
-  expect(Number.isFinite(balanceAfter)).toBe(true);
-  expect(balanceAfter).toBeLessThan(this.sourceBalanceBeforeTransfer);
+  const balances = await loadBalancesAfterTransfer(this);
+  this.destinationBalanceAfterTransfer = balances.destination;
+  expect(balances.source).toBeLessThan(this.sourceBalanceBeforeTransfer);
 });
 
 Then('destination account balance should increase', async function (this: ApiWorld) {
-  const api = new AccountApi(apiClientFor(this));
   if (this.destinationBalanceBeforeTransfer === undefined) {
     throw new Error('Destination balance was not captured before the transfer.');
   }
-  const payload = await readJsonResponse<{ balance?: number | string }>(await api.getAccount(this.destinationAccountId));
-  const balanceAfter = Number(payload.balance);
-  expect(Number.isFinite(balanceAfter)).toBe(true);
-  expect(balanceAfter).toBeGreaterThan(this.destinationBalanceBeforeTransfer);
+  if (this.destinationBalanceAfterTransfer === undefined) {
+    throw new Error('Destination balance was not fetched after the transfer.');
+  }
+  expect(this.destinationBalanceAfterTransfer).toBeGreaterThan(this.destinationBalanceBeforeTransfer);
 });
+
+async function loadBalancesAfterTransfer(world: ApiWorld): Promise<{ source: number; destination: number }> {
+  const { customerId } = getApiTestData();
+  const expectedCustomerId = world.customerId || customerId;
+  const response = await new AccountApi(apiClientFor(world)).getCustomerAccounts(expectedCustomerId);
+  const payload = await readJsonResponse<unknown>(response);
+  if (!Array.isArray(payload)) {
+    throw new Error(`Customer ${expectedCustomerId} accounts response was not an array.`);
+  }
+
+  const balances = new Map<string, number>();
+  for (const account of payload) {
+    if (typeof account !== 'object' || account === null) continue;
+    const record = account as Record<string, unknown>;
+    const id = record.id;
+    if (
+      (typeof id !== 'string' && typeof id !== 'number') ||
+      String(record.customerId) !== expectedCustomerId
+    ) {
+      continue;
+    }
+
+    const balance = Number(record.balance ?? record.availableBalance);
+    if (Number.isFinite(balance)) balances.set(String(id), balance);
+  }
+
+  const source = balances.get(world.sourceAccountId);
+  const destination = balances.get(world.destinationAccountId);
+  if (source === undefined || destination === undefined) {
+    throw new Error('Could not find both transfer accounts in the customer accounts response.');
+  }
+  return { source, destination };
+}
 
 async function resolveTransferAccounts(world: ApiWorld): Promise<void> {
   const { customerId, transfer } = getApiTestData();

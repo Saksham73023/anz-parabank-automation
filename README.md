@@ -35,6 +35,30 @@ API runs use `API_BASE_URL` (defaults to `https://parabank.parasoft.com/parabank
 
 API test code is organized under `api/features/`, `api/steps/`, `api/services/`, `api/support/`, `api/testData/`, `api/payloads/`, and `api/utils/`. The Cucumber API profile loads API-only hooks and steps; web and mobile profiles remain separate.
 
+### API framework scope
+
+The API profile runs independently through Playwright's API request context and Cucumber's API-only hooks. Its supported ParaBank service operations are:
+
+| Resource or operation | Supported API behavior exercised here |
+| --- | --- |
+| Customer | GET customer details and list customer accounts |
+| Account | Create an account and GET account details |
+| Transaction | GET account transaction history; seed a transaction through the supported deposit action |
+| Transfer | Submit a transfer action and verify account balances |
+| BillPay | Submit a bill-payment action and verify its confirmation |
+
+The eight positive feature scenarios are workflow/read checks, not eight independent CRUD operations; Customer coverage is read-only. The six negative cases and three response-schema scenarios are described in their respective feature files. SOAP parity compares the supported Customer GET, Account GET, and Transaction GET operations.
+
+### Day 8 REST and SOAP API tests
+
+The API-only suite includes eight positive scenarios across Customer, Account, Transaction history, Transfer, and BillPay; six negative scenarios; and JSON Schema checks for Customer, Account, and Transaction GET responses. Customer coverage is read-only. `api/features/soapParity.feature` compares Customer GET, Account GET, and Transaction GET REST responses with their ParaBank SOAP equivalents. The E2E API scenario uses an existing customer, creates an account, seeds transaction history through a deposit, transfers funds, pays a bill, and reconciles account balances and the corresponding transaction records.
+
+SOAP requests use `API_SOAP_URL` when configured; otherwise the endpoint is derived from an `API_BASE_URL` ending in `/services/bank`. Set `API_E2E_SEED_AMOUNT` to change the E2E deposit amount; its default is `100`, and it must exceed the configured transfer and bill-payment amounts combined.
+
+**ParaBank API limitation:** Customer creation is not available through the ParaBank REST/SOAP service API used by this framework. Customer registration is a separate web flow, so API scenarios and the E2E flow use an existing customer; they must not claim to create one. The service contract also does not expose Customer deletion or Account update/delete operations. Transactions are read through account transaction history and created as side effects of supported operations such as deposit, transfer, and bill payment; there are no Transaction CRUD operations in this suite. Transfer and BillPay are supported action requests, not CRUD-managed resources. The framework intentionally implements only these exposed service operations and does not invent endpoints to satisfy generic CRUD wording. Consequently, full CRUD coverage across Customer, Account, Transaction, Transfer, and BillPay is not achievable against this API.
+
+The E2E scenario starts from an existing customer because the API does not support customer creation. It creates an account, deposits seed funds, transfers, pays a bill, and reconciles both balances with the newly recorded transactions.
+
 Mobile runs use iPhone 12 emulation (390x844) by default; set `MOBILE_DEVICE=Pixel 7` to use Pixel 7. They use `BASE_URL` (the same site default used by web tests). Set `PARABANK_USERNAME` and `PARABANK_PASSWORD`; `MOBILE_TRANSFER_AMOUNT` and `MOBILE_BILLPAY_AMOUNT` default to `1`. Smoke transfer scenarios require two available accounts.
 
 ## Day 9 mobile, cross-browser, accessibility, and payment tests

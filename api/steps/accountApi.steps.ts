@@ -33,6 +33,10 @@ When('user creates a savings account', async function (this: ApiWorld) {
   await createCustomerAccount(this, 'SAVINGS');
 });
 
+When('user creates a checking account', async function (this: ApiWorld) {
+  await createCustomerAccount(this, 'CHECKING');
+});
+
 When('user fetches account details', async function (this: ApiWorld) {
   const accountApi = new AccountApi(apiClientFor(this));
   const requestedAccountId = this.accountId || getApiTestData().accountId;
@@ -128,6 +132,7 @@ async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 
   const fundingAccountId = await resolveFundingAccountId(accountApi, customerId, preferredAccountId);
   world.lastResponse = await accountApi.createAccount(customerId, accountType, fundingAccountId);
   world.sourceAccountId = fundingAccountId;
+  world.e2eResponses.push(world.lastResponse);
 
   const payload = await readJsonResponse<{ id?: string | number; accountId?: string | number }>(world.lastResponse);
   const createdAccountId = payload.id ?? payload.accountId;

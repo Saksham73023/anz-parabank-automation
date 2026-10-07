@@ -1,6 +1,0 @@
-﻿{
-  "fromAccountId": "12345",
-  "toAccountId": "12346",
-  "amount": 25,
-  "memo": "API transfer"
-}

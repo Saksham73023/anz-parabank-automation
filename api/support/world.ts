@@ -13,18 +13,19 @@ export class ApiWorld extends World {
   transferAmount = 1;
   sourceBalanceBeforeTransfer?: number;
   destinationBalanceBeforeTransfer?: number;
-  requestBody?: unknown;
+  destinationBalanceAfterTransfer?: number;
   lastResponse?: APIResponse;
-  accountApiResponse?: APIResponse;
-  transferApiResponse?: APIResponse;
-  frameworkApiResponse?: APIResponse;
-  frameworkRequestLog?: { method: string; path: string };
-  frameworkResponseLog?: { status: number; contentType: string };
-  frameworkExecutionCompleted = false;
-  requestedAccountId?: string;
-  createdCustomerId?: string;
-  createdAccountId?: string;
-  responseBody?: unknown;
+  soapParity?: {
+    operation: string;
+    rest: Record<string, unknown>[];
+    soap: Record<string, unknown>[];
+  };
+  e2eResponses: APIResponse[] = [];
+  e2eOpeningBalance?: number;
+  e2eDestinationOpeningBalance?: number;
+  e2eSeedAmount?: number;
+  e2eInitialTransactionCount?: number;
+  e2eInitialTransactionIds?: string[];
 
   constructor(options: IWorldOptions) {
     super(options);

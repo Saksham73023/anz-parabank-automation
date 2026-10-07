@@ -11,14 +11,12 @@ Scenario: Invalid Account ID
   When user fetches account details
   Then response status should be 400
 
-Scenario: Missing Mandatory Fields
-  Given an incomplete payload
-  When user creates an account
-  Then response status should be 400
+Scenario: Malformed JSON Payload Returns Server Error
+  When user sends a malformed JSON payload
+  Then response status should be 500
 
-Scenario: Empty Payload
-  Given an empty payload
-  When user sends a request
+Scenario: Missing Required Parameters
+  When user creates an account without required parameters
   Then response status should be 400
 
 Scenario: Invalid Transfer Amount
@@ -26,7 +24,6 @@ Scenario: Invalid Transfer Amount
   When user attempts an invalid transfer
   Then response status should be 400
 
-Scenario: Invalid Content Type
-  Given content type is invalid
-  When user sends request
+Scenario: Wrong Content Type
+  When user sends a request with the wrong content type
   Then response status should be 415

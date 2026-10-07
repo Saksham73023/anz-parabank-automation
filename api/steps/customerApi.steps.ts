@@ -32,16 +32,8 @@ Then('response status should be {int}', function (this: ApiWorld, expectedStatus
 Then('customer information should be returned', async function (this: ApiWorld) {
   const payload = await readJsonResponse(this.lastResponse!);
   expect(payload).toBeTruthy();
-  expect((payload as { id?: unknown }).id ?? (payload as { customerId?: unknown }).customerId).toBeTruthy();
-});
-
-Then('customer id should exist', async function (this: ApiWorld) {
-  const payload = await readJsonResponse(this.lastResponse!);
-  expect((payload as { id?: unknown }).id ?? (payload as { customerId?: unknown }).customerId).toBeTruthy();
-});
-
-Then('customer name should exist', async function (this: ApiWorld) {
-  const payload = await readJsonResponse(this.lastResponse!);
-  expect((payload as { firstName?: string }).firstName).toBeTruthy();
-  expect((payload as { lastName?: string }).lastName).toBeTruthy();
+  const customer = payload as { id?: unknown; customerId?: unknown; firstName?: string; lastName?: string };
+  expect(customer.id ?? customer.customerId).toBeTruthy();
+  expect(customer.firstName).toBeTruthy();
+  expect(customer.lastName).toBeTruthy();
 });

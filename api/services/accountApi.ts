@@ -28,14 +28,6 @@ export class AccountApi {
     });
   }
 
-  updateAccount(accountId: string, data: Record<string, unknown>): Promise<APIResponse> {
-    return this.client.put(`/accounts/${this.requiredId(accountId, 'accountId')}`, { data });
-  }
-
-  deleteAccount(accountId: string): Promise<APIResponse> {
-    return this.client.delete(`/accounts/${this.requiredId(accountId, 'accountId')}`);
-  }
-
   private requiredId(value: string, name: string): string {
     const id = value.trim();
     if (!id) throw new Error(`${name} must be configured before calling the account API.`);

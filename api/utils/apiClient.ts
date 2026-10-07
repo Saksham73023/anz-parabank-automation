@@ -77,7 +77,8 @@ export class ApiClient {
       ? undefined
       : Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
     const maxRetries = 3;
-    const maxRateLimitRetries = 1;
+    const maxRateLimitRetries = 2;
+    let previousRateLimitDelay = 0;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const builtRequest = RequestBuilder.build(path, options);
@@ -104,9 +105,12 @@ export class ApiClient {
 
       const body = response.status() === 429 ? await response.text() : undefined;
       if (response.status() === 429 && attempt < maxRateLimitRetries) {
+        const retryDelay = getRetryDelay(response.headers()['retry-after'], body);
+        const delay = Math.max(retryDelay, previousRateLimitDelay * 2);
+        previousRateLimitDelay = delay;
         await new Promise((resolve) => setTimeout(
           resolve,
-          getRetryDelay(response.headers()['retry-after'], body)
+          delay
         ));
         continue;
       }

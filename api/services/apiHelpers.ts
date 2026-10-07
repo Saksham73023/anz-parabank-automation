@@ -60,3 +60,27 @@ export function apiClientFor(world: ApiWorld) {
   }
   return world.apiClient;
 }
+
+export function getSoapEndpoint(): string {
+  const configuredEndpoint = process.env.API_SOAP_URL?.trim();
+  if (configuredEndpoint) {
+    try {
+      const endpoint = new URL(configuredEndpoint);
+      if (!['http:', 'https:'].includes(endpoint.protocol)) {
+        throw new Error('unsupported protocol');
+      }
+      return endpoint.toString();
+    } catch {
+      throw new Error('API_SOAP_URL must be a valid absolute HTTP or HTTPS URL.');
+    }
+  }
+
+  const apiBaseUrl = process.env.API_BASE_URL?.trim() || 'https://parabank.parasoft.com/parabank/services/bank';
+  const endpoint = new URL(apiBaseUrl);
+  if (!/\/services\/bank\/?$/.test(endpoint.pathname)) {
+    throw new Error('Set API_SOAP_URL when API_BASE_URL does not end in /services/bank.');
+  }
+  endpoint.pathname = endpoint.pathname.replace(/\/bank\/?$/, '/ParaBank');
+  endpoint.search = '';
+  return endpoint.toString();
+}
