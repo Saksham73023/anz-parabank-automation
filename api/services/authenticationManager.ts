@@ -22,6 +22,7 @@ export class AuthenticationManager {
       form: { username: username.trim(), password },
       rootPath: true,
       maxRedirects: 0,
+      rateLimitRetrySafe: true,
       expectedStatus: 302
     });
     const location = response.headers().location ?? '';

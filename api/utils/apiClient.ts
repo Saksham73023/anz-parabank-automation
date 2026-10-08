@@ -24,6 +24,7 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   authentication?: ApiAuthentication;
   expectedStatus?: number | number[];
+  rateLimitRetrySafe?: boolean;
 }
 
 /** Central Playwright API transport for request construction, status checks, and bounded retries. */
@@ -102,11 +103,10 @@ export class ApiClient {
       ? undefined
       : Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
     const maxServerRetries = 3;
-    const maxRateLimitRetries = 5;
-    const maxRateLimitWait = 300_000;
+    const maxRateLimitRetries = 1;
+    const maxRateLimitRetryDelay = 300_000;
     let serverRetries = 0;
     let rateLimitRetries = 0;
-    let rateLimitWaited = 0;
 
     while (true) {
       const builtRequest = RequestBuilder.build(path, options);
@@ -133,22 +133,22 @@ export class ApiClient {
 
       const body = response.status() === 429 ? await response.text() : undefined;
       if (response.status() === 429) {
-        if (rateLimitRetries >= maxRateLimitRetries) {
-          const responseBody = (body ?? '').slice(0, 1000);
+        const retryDelay = getRetryDelay(response.headers()['retry-after'], body);
+        const responseBody = (body ?? '').slice(0, 1000);
+        if (method !== 'GET' && !options.rateLimitRetrySafe) {
           throw new Error(
-            `${method} ${path} remained rate-limited after ${rateLimitRetries} retries.` +
+            `${method} ${path} was rate-limited (HTTP 429); automatic retry was skipped to avoid repeating a potentially non-idempotent request. ` +
+            `Retry after ${Math.ceil(retryDelay / 1000)} seconds.${responseBody ? ` Response: ${responseBody}` : ''}`
+          );
+        }
+        if (rateLimitRetries >= maxRateLimitRetries || retryDelay > maxRateLimitRetryDelay) {
+          throw new Error(
+            `${method} ${path} was rate-limited (HTTP 429); automatic retry was skipped because ` +
+            `${rateLimitRetries >= maxRateLimitRetries ? 'the single retry was already used' : `the server requested a ${Math.ceil(retryDelay / 1000)}-second wait (limit: ${maxRateLimitRetryDelay / 1000} seconds)`}.` +
             `${responseBody ? ` Response: ${responseBody}` : ''}`
           );
         }
-        const retryDelay = getRetryDelay(response.headers()['retry-after'], body);
-        if (rateLimitWaited + retryDelay > maxRateLimitWait) {
-          throw new Error(
-            `${method} ${path} was rate-limited for at least ${Math.ceil(retryDelay / 1000)} seconds; ` +
-            `the remaining API client retry budget is ${Math.floor((maxRateLimitWait - rateLimitWaited) / 1000)} seconds. Retry the scenario later.`
-          );
-        }
         rateLimitRetries++;
-        rateLimitWaited += retryDelay;
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         continue;
       }
@@ -166,7 +166,7 @@ export class ApiClient {
   }
 }
 
-/** Resolves a rate-limit wait from Retry-After, a JSON retry_after field, or a fallback. */
+/** Resolves the minimum rate-limit wait from Retry-After, JSON retry_after, or a fallback. */
 function getRetryDelay(retryAfterHeader: string | undefined, body: string | undefined): number {
   if (retryAfterHeader) {
     const seconds = Number(retryAfterHeader);

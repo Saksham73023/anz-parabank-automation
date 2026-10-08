@@ -1,11 +1,12 @@
 @login  @smokeSuite
 Feature: ParaBank login
 
-  @smoke @positive @loginValid
+  @day9-smoke @smoke @mobile @positive @loginValid
   Scenario: Login with valid credentials
     Given I am on the ParaBank login page
     When I log in with the configured ParaBank credentials
     Then I should see the ParaBank account overview
+    And the page should render in the 390x844 mobile viewport
     
    @smoke @negative @invalidPassword
   Scenario: Verify login fails with invalid password
@@ -34,9 +35,10 @@ Feature: ParaBank login
    When User clicks Login button without entering credentials
   Then Login should remain unauthenticated
 
-   @smoke @positive @logout
+   @day9-smoke @smoke @mobile @positive @logout
   Scenario: Verify user can logout successfully
    Given User is logged into application
    When User clicks Logout
    Then User should be redirected to Login page
   And protected account pages should require login
+  And the page should render in the 390x844 mobile viewport

@@ -16,25 +16,28 @@ Copy `.env.example` to `.env` and set valid ParaBank credentials. The checked-in
 ```powershell
 npm test
 npm run test:web
-npm run test:api
-npm run test:mobile
 npm run test:crossbrowser
-npm run test:mobile:day9
+npm run test:mobile
+npm run test:web:mobile-smoke
+npm run test:api
 npm run test:accessibility
 npm run test:payid
-npm run test:mockpayment
-npm run test:smoke
+npm run test:all
 npm run test:headed
 npm run typecheck
 ```
 
-`HEADLESS=false` opens the browser. Failed scenarios save screenshots under `reports/`, and the HTML report is written to `reports/cucumber-report.html`.
+`HEADLESS=false` opens the browser. Failed scenarios save screenshots under `test-results/`. Cucumber runs write their detailed HTML report to `reports/cucumber-report.html`.
 
-Web execution uses the `web/` feature files and browser hooks. API and mobile runs use separate Cucumber profiles and do not load the web hooks. The API and mobile scenarios are tagged `@api` and `@mobile`; existing smoke scenarios continue to use `@smoke`.
+Web execution uses the `web/` feature files and browser hooks. `npm run test:web` explicitly runs Web scenarios on Chromium. API runs use a separate Cucumber profile and do not load the web hooks. API scenarios are tagged `@api`.
 
-API runs use `API_BASE_URL` (defaults to `https://parabank.parasoft.com/parabank/services/bank`). Configure `API_ACCOUNT_ID`, `API_TRANSFER_SOURCE_ACCOUNT_ID`, and `API_TRANSFER_DESTINATION_ACCOUNT_ID` for the target environment. `API_TRANSFER_AMOUNT` defaults to `1`; `API_TOKEN` or `API_COOKIE` can provide API authentication when required. The API-only defaults and values are maintained in `api/testData/apiTestData.json`.
+The Day 9 smoke pack reuses the same Web feature files and step definitions for Login, Accounts Overview, Transfer Funds, Bill Pay, and Logout. The `@day9-smoke` tag selects exactly those scenarios. `npm run test:crossbrowser` executes that pack on desktop Chromium, desktop Firefox, and Chromium at a 390x844 mobile viewport. The mobile leg verifies the viewport and workflow; it warns about horizontal overflow because the external ParaBank site uses a fixed-width desktop layout. `npm run test:mobile` runs the mobile leg by itself.
 
-API test code is organized under `api/features/`, `api/steps/`, `api/services/`, `api/support/`, `api/testData/`, `api/payloads/`, and `api/utils/`. The Cucumber API profile loads API-only hooks and steps; web and mobile profiles remain separate.
+The root `playwright.config.ts` also defines native Playwright Test projects named `chromium`, `firefox`, and `mobile` (390x844 iPhone 13 emulation). Cucumber feature suites use their Cucumber profiles and browser hooks; they do not run through native Playwright Test projects. Native Playwright Test specs can be run with `npx playwright test --config=playwright.config.ts` (install browsers with `npx playwright install chromium firefox`). Native Playwright uses the list reporter so it does not add another report file.
+
+API runs use `API_BASE_URL` (defaults to `https://parabank.parasoft.com/parabank/services/bank`). Configure `API_ACCOUNT_ID`, `API_TRANSFER_SOURCE_ACCOUNT_ID`, and `API_TRANSFER_DESTINATION_ACCOUNT_ID` for the target environment. `API_TRANSFER_AMOUNT` defaults to `1`; `API_TOKEN` or `API_COOKIE` can provide API authentication when required. The API-only defaults and values are maintained in `api/testData/apiTestData.json`. Under HTTP 429 rate limiting, GET requests and explicitly marked safe requests (such as ParaBank login) retry at most once, honoring `Retry-After` up to five minutes. Other mutating requests fail without retrying to avoid duplicate actions.
+
+API test code is organized under `api/features/`, `api/steps/`, `api/services/`, `api/support/`, `api/testData/`, `api/payloads/`, and `api/utils/`. The Cucumber API profile loads API-only hooks and steps; the Web profile remains separate.
 
 ### API framework scope
 
@@ -60,34 +63,47 @@ SOAP requests use `API_SOAP_URL` when configured; otherwise the endpoint is deri
 
 The E2E scenario starts from an existing customer because the API does not support customer creation. It creates an account, deposits seed funds, transfers, pays a bill, and reconciles both balances with the newly recorded transactions.
 
-Mobile runs use iPhone 12 emulation (390x844) by default; set `MOBILE_DEVICE=Pixel 7` to use Pixel 7. They use `BASE_URL` (the same site default used by web tests). Set `PARABANK_USERNAME` and `PARABANK_PASSWORD`; `MOBILE_TRANSFER_AMOUNT` and `MOBILE_BILLPAY_AMOUNT` default to `1`. Smoke transfer scenarios require two available accounts.
+## Web accessibility tests
 
-## Day 9 mobile, cross-browser, accessibility, and payment tests
+The Web accessibility profile runs the three `@accessibility` scenarios in `web/features/accessibility.feature` for Login, Accounts Overview, and Transfer Funds. It uses the existing Web Cucumber hooks and page objects, attaches the full axe result JSON to each scenario, and writes findings to the shared Cucumber HTML report. Violations are logged and reported for analysis but do not fail the scenarios in this POC.
 
-All Day 9 files live under `mobile/`. `mobile/playwrightConfig.ts` selects the browser for Cucumber scenarios and applies iPhone 12 or Pixel 7 emulation for `@mobile`; the iPhone 12 viewport is 390x844. Cross-browser runs use the same smoke flow with Chromium and Firefox in separate runs.
-
-Set `BASE_URL`, `PARABANK_USERNAME`, and `PARABANK_PASSWORD` for the target ParaBank environment. The smoke flow also needs at least two accounts for transfer. `MOBILE_TRANSFER_AMOUNT` and `MOBILE_BILLPAY_AMOUNT` default to `1`.
+Run the accessibility scenarios directly with:
 
 ```powershell
-npm run test:crossbrowser:chromium
-npm run test:crossbrowser:firefox
-npm run test:mobile:day9
-npm run test:accessibility
-npm run test:mockpayment
+npx cucumber-js -p web-accessibility --tags "@accessibility"
 ```
 
-The Day 9 profiles cover 13 Cucumber scenarios (including the existing mobile login and transfer cases); the cross-browser smoke scenario runs on both Chromium and Firefox, for 14 executions total. Each Cucumber profile writes an HTML report under `reports/`; Chromium and Firefox smoke results are kept in separate reports. Accessibility scans attach JSON violation details to the report, append results to `reports/accessibility-results.jsonl`, and print impact, help, and affected selectors to the console; serious and critical violations fail the scan. NPP/PayID outcomes are fully mocked with `page.route()` and do not submit real payments.
+The `-p web-accessibility` profile is required because the default Cucumber profile loads API scenarios only. Alternatively, run `npm run test:accessibility`.
 
 ```text
-mobile/
-  features/       Chromium/Firefox smoke, 390x844 mobile, accessibility, and PayID scenarios
-  pages/          Login, account, transfer, bill-pay, mock-payment POMs and session helpers
-  steps/          Shared smoke steps, axe scans, and mocked PayID outcomes
-  utils/          Axe result logging and PayID route-interception mocks
-  pages/mobileHelper.ts    Browser, context, and page lifecycle
-  mobileConfig.ts          Cucumber hooks and failure screenshot attachments
-  playwrightConfig.ts      Environment-based Playwright browser/device options
+web/
+  features/accessibility.feature       # @accessibility scenarios for the three Web pages
+  steps/accessibility.steps.ts         # Page-object navigation, scans, report checks, and non-blocking findings
+  support/axeHelper.ts                 # Reusable axe scan and violation logging
+reports/
+  cucumber-report.html                 # Detailed results from the most recent Cucumber run
+  final-consolidated-report.html       # Summary of the most recent cross-browser/all run
 ```
+
+## Day 9 execution and reporting
+
+Run each activity separately:
+
+```powershell
+npm run test:api
+npm run test:crossbrowser
+npm run test:mobile
+npm run test:accessibility
+npm run test:payid
+```
+
+`npm run test:crossbrowser` runs the shared smoke scenarios in desktop Chromium, desktop Firefox, and a Chromium 390x844 mobile viewport. Mobile scenarios verify the configured viewport and complete their workflows; the external ParaBank UI may still overflow horizontally because it has a fixed-width desktop layout. Cucumber profiles share one detailed HTML report; the runner writes one final HTML summary. No per-suite JSON/HTML reports are generated.
+
+ParaBank has no native PayID endpoint. The PayID feature now lives in `api/features/payId.feature` and uses a scenario-local HTTP mock API, not browser hooks or Playwright `page.route()`. It validates settled (HTTP 200), failed (HTTP 422), and timeout (HTTP 504) outcomes without making real payments. Run the API-only simulation with `npm run test:payid`; it writes to the shared Cucumber HTML report. The scenarios are tagged `@api @payid`, so they also run as part of `npm run test:api`.
+
+`npm run test:all` runs API, the full Web feature suite on Chromium, desktop Chromium and Firefox smoke, the same smoke pack on Chromium mobile (390x844), and accessibility. The final HTML report has separate API, Web, Cross Browser, Mobile, and Accessibility rows, including browser-run status within each category. It continues to later suites if an earlier suite fails and exits with a non-zero status if any run failed. `reports/cucumber-report.html` contains details from the most recently completed Cucumber profile; `reports/final-consolidated-report.html` summarizes every category.
+
+The shared suite runner is `scripts/run-suites.js`. It requires no additional dependencies and returns a CI-friendly exit code after all requested suites have completed.
 
 ## Registration flow structure
 
@@ -112,5 +128,5 @@ npx cucumber-js --tags "@registration"
 ## Required from you
 
 - Confirm the credentials to use for the test environment; do not commit real passwords.
-- Confirm whether Chromium, Firefox, or WebKit is required (`BROWSER` controls this).
+- Use `npm run test:web` for Chromium or `npm run test:crossbrowser` for Chromium, Firefox, and mobile smoke coverage.
 - Share the next business flows to automate, such as registration, account creation, funds transfer, bill payment, or logout.

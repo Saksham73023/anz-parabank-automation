@@ -6,10 +6,11 @@ Feature: ParaBank Bill Payment
     And user navigates to Bill Payment page
 
   #Valid Bill Payment
-  @smoke @critical
+  @day9-smoke @smoke @mobile @critical
   Scenario: Successful bill payment with valid details
     When user submits bill payment with "valid" data
     Then payment should be successful
+    And the page should render in the 390x844 mobile viewport
 
  #Mandatory Fields (9 Variants)
   @validation @mandatory

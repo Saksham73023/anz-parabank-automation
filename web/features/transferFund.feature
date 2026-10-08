@@ -5,12 +5,13 @@ Feature: Fund Transfer - Pay Anyone / Transfer Funds
     Given user is logged into ParaBank
     
   # Core Business Flow
-  @smoke @sanity @regression @positive @core
+  @day9-smoke @smoke @mobile @sanity @regression @positive @core
   Scenario: Transfer money between two own accounts
      When user transfers 100 from source account to destination account
      Then transfer should be successful
      And source account balance should decrease by 100
      And destination account balance should increase by 100
+     And the page should render in the 390x844 mobile viewport
 
  # Boundary Tests
   @boundary @regression

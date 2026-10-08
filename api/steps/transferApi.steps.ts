@@ -1,16 +1,20 @@
 ﻿import { Given, Then, When } from '@cucumber/cucumber';
 import { expect } from 'playwright/test';
 import { AccountApi } from '../services/accountApi';
-import { apiClientFor, getApiTestData } from '../services/apiHelpers';
+import { apiClientFor, getApiTestData, resolveCustomerAccountId } from '../services/apiHelpers';
 import { TransactionApi } from '../services/transactionApi';
 import { TransferApi } from '../services/transferApi';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
 /** Selects the configured source account for a transfer scenario. */
-Given('source account exists', function (this: ApiWorld) {
-  const { sourceAccountId } = getApiTestData().transfer;
-  this.sourceAccountId = sourceAccountId || '12345';
+Given('source account exists', async function (this: ApiWorld) {
+  const { customerId, transfer } = getApiTestData();
+  this.sourceAccountId = await resolveCustomerAccountId(
+    apiClientFor(this),
+    this.customerId || customerId,
+    transfer.sourceAccountId || getApiTestData().accountId
+  );
 });
 
 /** Selects the configured destination account for a transfer scenario. */

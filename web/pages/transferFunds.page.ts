@@ -1,5 +1,6 @@
 import { expect, Locator, Page } from 'playwright/test';
 import { getCommonMessages } from '../support/testDataHelper';
+import { AccountsOverviewPage } from './accountOverview.page';
 import { BasePage } from './basepage';
 
 /** Transfer confirmation details returned after submitting the funds-transfer form. */
@@ -47,8 +48,13 @@ export class TransferFundsPage extends BasePage {
   /** Reads distinct available account IDs from both transfer selectors. */
   async getAccountIds(): Promise<string[]> {
     await this.open();
-    await this.page.waitForFunction(() =>
-      document.querySelectorAll('#fromAccountId option[value]:not([value=""]), #toAccountId option[value]:not([value=""])').length > 0
+    await this.page.waitForFunction(
+      () => ['#fromAccountId', '#toAccountId'].every((selector) => {
+        const select = document.querySelector<HTMLSelectElement>(selector);
+        return Boolean(select && [...select.options].some((option) => option.value.trim() !== ''));
+      }),
+      undefined,
+      { timeout: 30_000 }
     );
     const accountIds = await Promise.all([
       this.fromAccountSelect.locator('option[value]:not([value=""])').evaluateAll((options) =>
@@ -199,12 +205,17 @@ export class TransferFundsPage extends BasePage {
    * @param accountId Account whose activity is opened.
    */
   async openAccountActivity(accountId: string): Promise<void> {
-    const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
-    if (!(await accountLink.isVisible())) {
-      await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
-    }
-    await accountLink.click();
-    await this.page.getByRole('heading', { name: 'Account Details', exact: true }).waitFor({ state: 'visible' });
+    const overview = new AccountsOverviewPage(this.page);
+    await overview.verifyPageDisplayed();
+    await overview.verifyAccountIdsVisible([accountId]);
+    await overview.clickAccount(accountId);
+
+    await this.page.waitForURL((url) => url.searchParams.get('id') === accountId, { timeout: 30_000 });
+    await expect(this.page.getByRole('heading', { name: 'Account Details', exact: true })).toBeVisible({
+      timeout: 30_000
+    });
+    await this.page.getByRole('button', { name: 'Go', exact: true }).click();
+    await expect(this.activityTable).toBeVisible({ timeout: 30_000 });
   }
 
   /**

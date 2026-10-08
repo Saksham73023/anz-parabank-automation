@@ -1,4 +1,4 @@
 node_modules/
 .env
-reports/*-failure.png
-reports/*.html
+reports/*
+test-results/

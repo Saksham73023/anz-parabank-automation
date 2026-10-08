@@ -2,6 +2,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ApiWorld } from '../support/world';
+import { AccountApi } from './accountApi';
+import { CustomerApi } from './customerApi';
+import type { ApiClient } from '../utils/apiClient';
+import { readJsonResponse } from '../utils/apiUtils';
 
 /** Fixture shape for customer/account identifiers and transfer/bill-payment requests. */
 export interface ApiTestData {
@@ -59,6 +63,60 @@ export function getApiTestData(): ApiTestData {
       memo: process.env.API_BILLPAY_MEMO?.trim() || data.billPay.memo
     }
   };
+}
+
+/**
+ * Resolves an eligible account owned by a customer, falling back to that customer's
+ * account list when the preferred account no longer exists.
+ */
+export async function resolveCustomerAccountId(
+  client: ApiClient,
+  customerId: string,
+  preferredAccountId: string
+): Promise<string> {
+  const accountApi = new AccountApi(client);
+  const preferredId = preferredAccountId.trim();
+  if (preferredId) {
+    const response = await accountApi.getAccount(preferredId, [200, 400, 404]);
+    if (response.status() === 200) {
+      const account = await readJsonResponse<unknown>(response);
+      const id = eligibleAccountId(account, customerId);
+      if (!id) {
+        throw new Error(`Configured account ${preferredId} is not an eligible account for customer ${customerId}.`);
+      }
+      return id;
+    }
+  }
+
+  const response = await new CustomerApi(client).getCustomerAccounts(customerId);
+  const accounts = await readJsonResponse<unknown>(response);
+  if (!Array.isArray(accounts)) {
+    throw new Error(`Customer ${customerId} accounts response was not an array.`);
+  }
+  for (const account of accounts) {
+    const id = eligibleAccountId(account, customerId);
+    if (id) return id;
+  }
+
+  throw new Error(`No eligible checking or savings account was found for customer ${customerId}.`);
+}
+
+function eligibleAccountId(value: unknown, customerId: string): string | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const record = value as Record<string, unknown>;
+  const id = record.id;
+  const type = record.type ?? record.accountType;
+  const balance = Number(record.balance ?? record.availableBalance);
+  if (
+    (typeof id !== 'string' && typeof id !== 'number') ||
+    String(id).trim() === '' ||
+    String(record.customerId) !== customerId ||
+    (type !== 'CHECKING' && type !== 'SAVINGS') ||
+    !Number.isFinite(balance)
+  ) {
+    return undefined;
+  }
+  return String(id);
 }
 
 /** Returns the API client owned by the current Cucumber scenario. */

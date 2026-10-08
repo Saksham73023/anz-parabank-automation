@@ -20,52 +20,40 @@ module.exports = {
     paths: ['api/features/**/*.feature'],
     tags: '@api'
   },
+  'api-payid': {
+    ...common,
+    require: ['api/support/**/*.ts', 'api/steps/**/*.ts'],
+    paths: ['api/features/payId.feature'],
+    tags: '@payid'
+  },
   web: {
     ...common,
-    // Loads only Web hooks, page workflows, and feature files; API/mobile profiles remain isolated.
+    // Loads only Web hooks, page workflows, and feature files; the API profile remains isolated.
     require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
     paths: ['web/features/**/*.feature']
   },
-  mobile: {
+  'web-accessibility': {
     ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/**/*.feature'],
-    tags: '@mobile',
-    format: ['progress', 'html:reports/mobile-report.html']
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/accessibility.feature'],
+    tags: '@accessibility'
   },
-  smoke: {
+  'web-crossbrowser-chromium': {
     ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/smoke.feature'],
-    tags: '@smoke',
-    format: ['progress', `html:reports/smoke-${process.env.BROWSER || 'chromium'}-report.html`]
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/**/*.feature'],
+    tags: '@day9-smoke'
   },
-  crossbrowser: {
+  'web-crossbrowser-firefox': {
     ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/**/*.feature'],
-    tags: '@crossbrowser',
-    format: ['progress', 'html:reports/crossbrowser-report.html']
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/**/*.feature'],
+    tags: '@day9-smoke'
   },
-  accessibility: {
+  'web-mobile': {
     ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/**/*.feature'],
-    tags: '@accessibility',
-    format: ['progress', 'html:reports/accessibility-report.html']
-  },
-  payid: {
-    ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/payid.feature'],
-    tags: '@payid',
-    format: ['progress', 'html:reports/payid-report.html']
-  },
-  mockpayment: {
-    ...common,
-    require: ['mobile/mobileConfig.ts', 'mobile/steps/**/*.ts'],
-    paths: ['mobile/features/**/*.feature'],
-    tags: '@mockpayment',
-    format: ['progress', 'html:reports/mockpayment-report.html']
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/**/*.feature'],
+    tags: '@day9-smoke'
   }
 };

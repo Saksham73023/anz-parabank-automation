@@ -9,5 +9,5 @@
     "types": ["node"],
     "outDir": "dist"
   },
-  "include": ["api/**/*.ts", "mobile/**/*.ts", "web/**/*.ts"]
+  "include": ["api/**/*.ts", "web/**/*.ts", "playwright.config.ts"]
 }

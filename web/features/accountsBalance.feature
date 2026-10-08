@@ -39,10 +39,11 @@ Feature: Accounts & Balances
     When user creates 5 accounts sequentially
     Then all created accounts should be displayed
 
-  @Balances @Calculation @Reconciliation
+  @day9-smoke @smoke @mobile @Balances @Calculation @Reconciliation
   Scenario:  Verify total balance equals sum of all account balances
     When user navigates to Accounts Overview
     Then total balance should match sum of all individual balances
+    And the page should render in the 390x844 mobile viewport
 
   @Accounts @AccountDetails
   Scenario: Verify account details page

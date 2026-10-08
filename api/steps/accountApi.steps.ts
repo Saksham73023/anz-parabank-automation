@@ -2,14 +2,19 @@
 import { expect } from 'playwright/test';
 import { AccountApi } from '../services/accountApi';
 import { AuthenticationManager } from '../services/authenticationManager';
-import { apiClientFor, getApiTestData } from '../services/apiHelpers';
+import { apiClientFor, getApiTestData, resolveCustomerAccountId } from '../services/apiHelpers';
 import type { ApiWorld } from '../support/world';
 import { readJsonResponse } from '../utils/apiUtils';
 
 /** Selects the configured valid account for subsequent account steps. */
-Given('a valid account exists', function (this: ApiWorld) {
-  const { accountId } = getApiTestData();
-  this.accountId = this.accountId || accountId || '12345';
+Given('a valid account exists', async function (this: ApiWorld) {
+  const { accountId, customerId } = getApiTestData();
+  this.customerId = this.customerId || customerId;
+  this.accountId = await resolveCustomerAccountId(
+    apiClientFor(this),
+    this.customerId,
+    this.accountId || accountId
+  );
   this.invalidAccountIdRequested = false;
 });
 
@@ -54,7 +59,12 @@ When('user fetches account details', async function (this: ApiWorld) {
     return;
   }
 
-  this.lastResponse = await accountApi.getAccount(requestedAccountId);
+  this.accountId = await resolveCustomerAccountId(
+    apiClientFor(this),
+    this.customerId || getApiTestData().customerId,
+    requestedAccountId
+  );
+  this.lastResponse = await accountApi.getAccount(this.accountId);
 });
 
 /** Retrieves the configured customer's account list. */
@@ -123,10 +133,11 @@ Then('customer accounts should be returned with valid details', async function (
  * @param accountType Type of account to create.
  */
 async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 'SAVINGS'): Promise<void> {
-  const accountApi = new AccountApi(apiClientFor(world));
+  const client = apiClientFor(world);
+  const accountApi = new AccountApi(client);
   const customerId = world.customerId || getApiTestData().customerId;
   const preferredAccountId = world.accountId || getApiTestData().accountId;
-  const fundingAccountId = await resolveFundingAccountId(accountApi, customerId, preferredAccountId);
+  const fundingAccountId = await resolveCustomerAccountId(client, customerId, preferredAccountId);
   world.lastResponse = await accountApi.createAccount(customerId, accountType, fundingAccountId);
   world.sourceAccountId = fundingAccountId;
   world.e2eResponses.push(world.lastResponse);
@@ -137,43 +148,4 @@ async function createCustomerAccount(world: ApiWorld, accountType: 'CHECKING' | 
     throw new Error('Account creation response did not include a valid account identifier.');
   }
   world.accountId = String(createdAccountId);
-}
-
-/**
- * Validates the configured account directly as the funding account for account creation.
- * @param accountApi Account service used to validate the configured account.
- * @param customerId Expected owner of the funding account.
- * @param preferredAccountId Configured funding account identifier.
- * @returns The selected funding account ID.
- */
-async function resolveFundingAccountId(
-  accountApi: AccountApi,
-  customerId: string,
-  preferredAccountId: string
-): Promise<string> {
-  if (!preferredAccountId.trim()) {
-    throw new Error('API_ACCOUNT_ID must be configured to select an account for account creation.');
-  }
-
-  const response = await accountApi.getAccount(preferredAccountId, [200, 400, 404]);
-  if (response.status() !== 200) {
-    throw new Error(`Configured funding account ${preferredAccountId} was not found; set API_ACCOUNT_ID to a valid account for customer ${customerId}.`);
-  }
-
-  const payload = await readJsonResponse<unknown>(response);
-  if (typeof payload !== 'object' || payload === null) {
-    throw new Error(`Configured funding account ${preferredAccountId} returned an invalid response.`);
-  }
-
-  const record = payload as Record<string, unknown>;
-  const accountId = record.id;
-  const accountType = record.type ?? record.accountType;
-  if (
-    (typeof accountId !== 'string' && typeof accountId !== 'number') ||
-    String(record.customerId) !== customerId ||
-    (accountType !== 'CHECKING' && accountType !== 'SAVINGS')
-  ) {
-    throw new Error(`Configured account ${preferredAccountId} is not an eligible funding account for customer ${customerId}.`);
-  }
-  return String(accountId);
 }

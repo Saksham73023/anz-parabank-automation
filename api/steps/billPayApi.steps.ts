@@ -14,8 +14,8 @@ When('user submits bill payment request', async function (this: ApiWorld) {
   const accountId = await resolveBillPayAccountId(
     new AccountApi(client),
     new TransactionApi(client),
-    customerId,
-    billPay.accountId,
+    this.customerId || customerId,
+    this.accountId || billPay.accountId,
     billPay.amount
   );
   this.accountId = accountId;
