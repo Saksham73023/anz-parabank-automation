@@ -1,4 +1,5 @@
 import { Given, Then, When } from '@cucumber/cucumber';
+import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
 import { AccountsOverviewPage } from '../pages/accountOverview.page';
 import { TransferFundsPage } from '../pages/transferFunds.page';
@@ -15,7 +16,13 @@ function transferPage(world: CustomWorld): TransferFundsPage {
 
 /** Generates a registration identity dedicated to a transfer workflow. */
 function freshTransferUser(): RegistrationData {
-  return createRegistrationData({ firstName: 'Transfer', lastName: 'Customer', password: 'Transfer12345' });
+  const username = `xfer${Date.now().toString(36)}${randomUUID().replaceAll('-', '').slice(0, 8)}`;
+  return createRegistrationData({
+    firstName: 'Transfer',
+    lastName: 'Customer',
+    username,
+    password: 'Transfer12345'
+  });
 }
 
 /** Registers a new user with bounded retries, then propagates security verification failures. */

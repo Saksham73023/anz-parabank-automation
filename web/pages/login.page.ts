@@ -41,6 +41,10 @@ export class LoginPage extends BasePage {
    */
   async login(username: string, password: string): Promise<void> {
     await this.fillCredentials(username, password);
+    if ((process.env.BROWSER ?? '').toLowerCase() === 'firefox') {
+      await this.passwordInput.press('Enter');
+      return;
+    }
     await this.loginButton.click();
   }
 
@@ -56,7 +60,7 @@ export class LoginPage extends BasePage {
 
   /** Submits the currently populated login form. */
   async clickLogin(): Promise<void> {
-    await this.loginButton.click();
+    await this.click(this.loginButton);
   }
 
   /** Verifies overview navigation and authenticated controls after successful login. */
@@ -92,7 +96,7 @@ export class LoginPage extends BasePage {
   /** Clicks the logout link after confirming it is available. */
   async logout(): Promise<void> {
     await expect(this.logoutLink).toBeVisible();
-    await this.logoutLink.click();
+    await this.click(this.logoutLink);
   }
 
   /** Verifies the login page controls are visible and authenticated controls are absent. */

@@ -17,6 +17,7 @@ export class BillPaymentPage extends BasePage {
   private readonly resultHeading = this.page.locator('#billpayResult h1');
   private readonly resultPanel = this.page.locator('#billpayResult');
   private readonly fundingAccount = this.page.locator('select[name="fromAccountId"]');
+  private readonly fundingAccountOptions = this.fundingAccount.locator('option[value]:not([value=""])');
   private readonly submitButton = this.page.locator('input[value="Send Payment"]');
   private readonly visibleErrors = this.page.locator('.error:visible').filter({ hasText: /\S/ });
   private readonly fieldLocators: Record<BillPaymentField, Locator>;
@@ -40,7 +41,7 @@ export class BillPaymentPage extends BasePage {
   /** Opens the Bill Pay screen and verifies its form is ready for interaction. */
   async open(): Promise<void> {
     if (!(await this.pageHeading.isVisible())) {
-      await this.billPayLink.click();
+      await this.click(this.billPayLink);
     }
     await expect(this.pageHeading).toBeVisible();
     await expect(this.fieldLocators.payeeName).toBeVisible();
@@ -53,7 +54,11 @@ export class BillPaymentPage extends BasePage {
    */
   async selectFundingAccount(accountId?: string): Promise<string> {
     await this.open();
-    const accountIds = await this.fundingAccount.locator('option').evaluateAll((options) =>
+    await this.fundingAccountOptions.first().waitFor({
+      state: 'attached',
+      timeout: Number(process.env.ACCOUNT_OPTIONS_TIMEOUT_MS ?? 15000)
+    });
+    const accountIds = await this.fundingAccountOptions.evaluateAll((options) =>
       options.map((option) => (option as HTMLOptionElement).value).filter(Boolean)
     );
     if (accountIds.length === 0) {

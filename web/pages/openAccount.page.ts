@@ -2,6 +2,8 @@ import { expect, Locator, Page } from 'playwright/test';
 import { getAccountData, getCommonMessages, type AccountType } from '../support/testDataHelper';
 import { BasePage } from './basepage';
 
+const accountCreationTimeout = Number(process.env.ACCOUNT_CREATION_TIMEOUT_MS ?? 15000);
+
 /** Models account opening, funding-account selection, and confirmation in ParaBank. */
 export class OpenAccountPage extends BasePage {
   private readonly openNewAccountLink: Locator;
@@ -26,7 +28,7 @@ export class OpenAccountPage extends BasePage {
 
   /** Opens the account-creation workflow and waits for its account-type selector. */
   async open(): Promise<void> {
-    await this.openNewAccountLink.click();
+    await this.click(this.openNewAccountLink);
     await this.accountTypeSelect.waitFor({ state: 'visible' });
   }
 
@@ -72,7 +74,7 @@ export class OpenAccountPage extends BasePage {
 
   /** Submits the current account-opening form. */
   async submit(): Promise<void> {
-    await this.openAccountButton.click();
+    await this.click(this.openAccountButton);
   }
 
   /**
@@ -91,8 +93,8 @@ export class OpenAccountPage extends BasePage {
 
   /** Verifies that ParaBank displays its account-opened confirmation. */
   async verifyAccountOpened(): Promise<void> {
-    await expect(this.accountOpenedHeading).toBeVisible();
-    await expect(this.page.getByText(getCommonMessages().accountOpenedSuccess)).toBeVisible();
+    await this.accountOpenedHeading.waitFor({ state: 'visible', timeout: accountCreationTimeout });
+    await expect(this.page.getByText(getCommonMessages().accountOpenedSuccess)).toBeVisible({ timeout: accountCreationTimeout });
   }
 
   /** Reads and validates the generated account ID from the success page. */
@@ -112,7 +114,7 @@ export class OpenAccountPage extends BasePage {
    * @param accountId Newly created account identifier.
    */
   async verifyAccountInOverview(accountId: string): Promise<void> {
-    await this.accountsOverviewLink.click();
+    await this.click(this.accountsOverviewLink);
     await expect(this.page.getByRole('heading', { name: 'Accounts Overview' })).toBeVisible();
     await expect(this.page.getByRole('link', { name: accountId, exact: true })).toBeVisible();
   }

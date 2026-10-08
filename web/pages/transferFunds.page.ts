@@ -39,7 +39,7 @@ export class TransferFundsPage extends BasePage {
   /** Opens Transfer Funds and waits for account selection controls. */
   async open(): Promise<void> {
     if (!(await this.transferHeading.isVisible())) {
-      await this.transferLink.click();
+      await this.click(this.transferLink);
     }
     await this.transferHeading.waitFor({ state: 'visible' });
     await this.fromAccountSelect.waitFor({ state: 'visible' });
@@ -126,7 +126,7 @@ export class TransferFundsPage extends BasePage {
     const accountLink = this.page.getByRole('link', { name: accountId, exact: true });
     const row = this.page.locator(`#accountTable tbody tr`).filter({ has: this.page.getByRole('link', { name: accountId, exact: true }) });
     if (!(await row.isVisible().catch(() => false))) {
-      await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
+      await this.click(this.page.getByRole('link', { name: 'Accounts Overview', exact: true }));
     }
     await row.waitFor({ state: 'visible' });
     return this.parseAmount((await row.locator('td').nth(1).textContent()) ?? '');
@@ -214,7 +214,7 @@ export class TransferFundsPage extends BasePage {
     await expect(this.page.getByRole('heading', { name: 'Account Details', exact: true })).toBeVisible({
       timeout: 30_000
     });
-    await this.page.getByRole('button', { name: 'Go', exact: true }).click();
+    await this.click(this.page.getByRole('button', { name: 'Go', exact: true }));
     await expect(this.activityTable).toBeVisible({ timeout: 30_000 });
   }
 

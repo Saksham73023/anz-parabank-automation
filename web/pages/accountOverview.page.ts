@@ -20,7 +20,7 @@ export class AccountsOverviewPage extends BasePage {
 	/** Opens Accounts Overview when needed and verifies its heading is visible. */
 	async verifyPageDisplayed(): Promise<void> {
 		if (!(await this.pageHeading.isVisible())) {
-			await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
+			await this.click(this.page.getByRole('link', { name: 'Accounts Overview', exact: true }));
 		}
 		await expect(this.pageHeading).toBeVisible();
 	}
@@ -82,7 +82,7 @@ export class AccountsOverviewPage extends BasePage {
 	 */
 	async clickAccount(accountId = ''): Promise<string> {
 		const selectedAccountId = accountId || await this.getFirstAccountId();
-		await this.page.getByRole('link', { name: selectedAccountId, exact: true }).click();
+		await this.click(this.page.getByRole('link', { name: selectedAccountId, exact: true }));
 		return selectedAccountId;
 	}
 
@@ -97,7 +97,7 @@ export class AccountsOverviewPage extends BasePage {
 			const balance = Number.parseFloat((await row.locator('td').nth(1).textContent() ?? '').replace(/[$,]/g, '').trim());
 			if (balance >= 0) {
 				const accountId = (await row.locator('td a').textContent() ?? '').trim();
-				await row.locator('td a').click();
+				await this.click(row.locator('td a'));
 				return accountId;
 			}
 		}

@@ -29,7 +29,7 @@ export class LoanRequestPage extends BasePage {
   /** Opens the loan request page and waits for the application form. */
   async open(): Promise<void> {
     if (!(await this.pageHeading.isVisible())) {
-      await this.requestLink.click();
+      await this.click(this.requestLink);
     }
     await expect(this.pageHeading).toBeVisible();
     await expect(this.amountInput).toBeVisible();
@@ -124,7 +124,7 @@ export class LoanRequestPage extends BasePage {
    * @param accountId Account ID expected in the overview.
    */
   async verifyLoanAccountInOverview(accountId: string): Promise<void> {
-    await this.page.getByRole('link', { name: 'Accounts Overview', exact: true }).click();
+    await this.click(this.page.getByRole('link', { name: 'Accounts Overview', exact: true }));
     await expect(this.page.getByRole('heading', { name: 'Accounts Overview', exact: true })).toBeVisible();
     await expect(this.page.getByRole('link', { name: accountId, exact: true })).toBeVisible();
   }

@@ -1,9 +1,13 @@
 ﻿require('dotenv/config');
 
 const common = {
-  requireModule: ['ts-node/register'],
-  // Reuses the shared progress and HTML reporting configuration for all Cucumber profiles.
-  format: ['progress', 'html:reports/cucumber-report.html'],
+  requireModule: ['tsx/cjs'],
+  // The runner supplies a private JSON path when it needs to consolidate this profile's scenarios.
+  format: [
+    'progress',
+    'html:reports/cucumber-report.html',
+    ...(process.env.CUCUMBER_JSON_PATH ? [['json', process.env.CUCUMBER_JSON_PATH]] : [])
+  ],
   publishQuiet: true
 };
 
@@ -30,7 +34,8 @@ module.exports = {
     ...common,
     // Loads only Web hooks, page workflows, and feature files; the API profile remains isolated.
     require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
-    paths: ['web/features/**/*.feature']
+    paths: ['web/features/**/*.feature'],
+    tags: 'not @accessibility'
   },
   'web-accessibility': {
     ...common,
@@ -51,6 +56,12 @@ module.exports = {
     tags: '@day9-smoke'
   },
   'web-mobile': {
+    ...common,
+    require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
+    paths: ['web/features/**/*.feature'],
+    tags: '@day9-smoke'
+  },
+  'web-mobile-firefox': {
     ...common,
     require: ['web/support/**/*.ts', 'web/steps/**/*.ts'],
     paths: ['web/features/**/*.feature'],

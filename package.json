@@ -11,6 +11,7 @@
     "test:web:crossbrowser:firefox": "cross-env BROWSER=firefox MOBILE_VIEWPORT=false cucumber-js -p web-crossbrowser-firefox",
     "test:crossbrowser": "node scripts/run-suites.js crossbrowser",
     "test:mobile": "cross-env BROWSER=chromium MOBILE_VIEWPORT=true cucumber-js -p web-mobile",
+    "test:mobile:firefox": "cross-env BROWSER=firefox MOBILE_VIEWPORT=true cucumber-js -p web-mobile-firefox",
     "test:web:mobile-smoke:chromium": "npm run test:mobile",
     "test:web:mobile-smoke": "npm run test:crossbrowser",
     "test:api": "cucumber-js -p api",
@@ -29,6 +30,7 @@
     "dotenv": "^16.4.7",
     "playwright": "^1.49.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.7.2"
   }
 }

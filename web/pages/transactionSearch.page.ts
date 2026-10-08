@@ -36,7 +36,7 @@ export class TransactionSearchPage extends BasePage {
   /** Opens Find Transactions and waits until account options are populated. */
   async open(): Promise<void> {
     if (!(await this.heading.isVisible())) {
-      await this.findTransactionsLink.click();
+      await this.click(this.findTransactionsLink);
     }
     await expect(this.heading).toBeVisible();
     await this.accountSelect.waitFor({ state: 'visible' });
@@ -199,7 +199,7 @@ export class TransactionSearchPage extends BasePage {
         return false;
       }
     });
-    await button.click();
+    await this.click(button);
     try {
       await response;
     } catch (error) {

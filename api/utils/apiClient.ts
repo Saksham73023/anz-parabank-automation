@@ -104,7 +104,7 @@ export class ApiClient {
       : Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
     const maxServerRetries = 3;
     const maxRateLimitRetries = 1;
-    const maxRateLimitRetryDelay = 300_000;
+    const maxRateLimitRetryDelay = 5_000;
     let serverRetries = 0;
     let rateLimitRetries = 0;
 

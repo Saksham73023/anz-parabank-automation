@@ -98,7 +98,7 @@ export interface ParaBankTestData {
  * @returns Parsed fixture data as the requested type.
  */
 export function readJsonFile<T>(fileName: string): T {
-  const filePath = join(__dirname, '..', 'testData', fileName);
+  const filePath = join(process.cwd(), 'web', 'testData', fileName);
   return JSON.parse(readFileSync(filePath, 'utf8')) as T;
 }
 

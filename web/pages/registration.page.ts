@@ -1,6 +1,8 @@
 import { Page } from 'playwright';
 import { BasePage } from './basepage';
 
+const registrationResultTimeout = Number(process.env.REGISTRATION_RESULT_TIMEOUT_MS ?? 20000);
+
 /** Customer identity and credential fields submitted through the registration form. */
 export interface RegistrationData {
 	firstName: string;
@@ -43,7 +45,7 @@ export class RegistrationPage extends BasePage {
 		await this.navigate(process.env.BASE_URL ?? 'https://parabank.parasoft.com/parabank/index.htm');
 		const logoutLink = this.page.getByRole('link', { name: 'Log Out' });
 		if (await logoutLink.isVisible()) {
-			await logoutLink.click();
+			await this.click(logoutLink);
 		}
 		const verificationPage = this.page.getByText(/performing security verification|verify you are human/i).first();
 		if (await verificationPage.isVisible().catch(() => false)) {
@@ -72,8 +74,8 @@ export class RegistrationPage extends BasePage {
 
 		const successMessage = this.page.getByText(expectedSuccessMessage);
 		await Promise.race([
-			successMessage.waitFor({ state: 'visible' }),
-			this.registrationError.waitFor({ state: 'visible' })
+			successMessage.waitFor({ state: 'visible', timeout: registrationResultTimeout }),
+			this.registrationError.waitFor({ state: 'visible', timeout: registrationResultTimeout })
 		]);
 
 		if (await this.registrationError.isVisible()) {
@@ -102,7 +104,11 @@ export class RegistrationPage extends BasePage {
 
 	/** Submits the registration form. */
 	async submit(): Promise<void> {
-		await this.click(this.registerButton);
+		if ((process.env.BROWSER ?? '').toLowerCase() === 'firefox') {
+			await this.confirmPasswordInput.press('Enter');
+		} else {
+			await this.click(this.registerButton);
+		}
 	}
 
 	/**

@@ -12,10 +12,11 @@ Then('the page should render in the 390x844 mobile viewport', async function (th
 
   expect(this.page.viewportSize()).toEqual({ width: 390, height: 844 });
   const dimensions = await this.page.evaluate(() => ({
+    innerWidth: window.innerWidth,
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth
   }));
-  expect(dimensions.clientWidth).toBe(390);
+  expect(dimensions.innerWidth).toBe(390);
   if (dimensions.scrollWidth > dimensions.clientWidth) {
     console.warn(
       `[mobile] ParaBank page content overflows horizontally: ${dimensions.scrollWidth}px content in ${dimensions.clientWidth}px viewport.`

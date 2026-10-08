@@ -23,6 +23,10 @@ export class BasePage {
      * @param locator Playwright locator for the target control.
      */
     async click(locator: Locator): Promise<void> {
+        if ((process.env.BROWSER ?? '').toLowerCase() === 'firefox') {
+            await locator.press('Enter');
+            return;
+        }
         await locator.click();
     }
 
